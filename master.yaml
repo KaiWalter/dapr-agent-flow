@@ -1,0 +1,12 @@
+version: 1
+common:
+  resourcesPath: ./components
+  logLevel: debug
+  appLogDestination: console
+  daprdLogDestination: console
+  enableAPILogging: false
+
+apps:
+  - appID: workflows
+    appDirPath: ./
+    command: ["python", "-m", "services.workflow.worker"]

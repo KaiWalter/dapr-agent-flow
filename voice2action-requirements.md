@@ -1,0 +1,7 @@
+This document contains the detailed requirements for the Voice to Action flow.
+
+The following table outlines the detailed functional requirements of `voice2action` Dapr workflow.
+
+| Requirement ID | Description               | User Story                                                                                       | Expected Behavior/Outcome                                                                                                     |
+|-----------------|---------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| FR001          | Download new voice recordings.   | I want new recordings to be downloaded from a OneDrive folder specified with an environment variable `ONEDRIVE_VOICE_INBOX`.  | - only files that not yet have been downloaded shall be downloaded<br/>- the system shall poll automatically at an interval in seconds provided by an environment variable `ONEDRIVE_VOICE_POLL_INTERVAL`<br/>- for each recording file detected, a separate workflow instance is started to handle download |
