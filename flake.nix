@@ -14,11 +14,23 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
       python = pkgs.python313;
+      libPath = pkgs.lib.makeLibraryPath [
+        pkgs.stdenv.cc.cc.lib # provides libstdc++.so.6 and libgcc_s.so.1
+        pkgs.zlib
+        pkgs.openssl
+        pkgs.c-ares # often pulled by grpc
+      ];
     in {
       devShells.default = pkgs.mkShell {
         # Tools available in the dev shell
         packages = with pkgs; [
+          # python and its dependencies
           python
+          stdenv.cc.cc.lib
+          zlib
+          openssl
+          c-ares
+          # development ennvironment
           dapr-cli
           zsh
           # Podman + helpers for rootless networking and overlay fs
@@ -32,6 +44,8 @@
         # Run the entire hook in zsh so all logic executes under zsh
         shellHook = ''
           exec ${pkgs.zsh}/bin/zsh -l <<'__ZSH_HOOK__'
+          export LD_LIBRARY_PATH=${libPath}:$LD_LIBRARY_PATH
+
           VENV_DIR=".venv"
           if [ ! -d "$VENV_DIR" ]; then
             echo "Creating Python venv at $VENV_DIR"
@@ -62,6 +76,9 @@
               done
             fi
           fi
+
+          # API keys
+          export OPENAI_API_KEY="$(op item get OpenAI --fields key --reveal)"
 
           # hand off to an interactive login zsh
           exec ${pkgs.zsh}/bin/zsh -i -l
