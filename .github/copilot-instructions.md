@@ -82,5 +82,5 @@ Secrets and configuration
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References
-- Dapr Agents quickstarts and patterns (use local quickstarts repo for scaffolds).
+- [Voice2Action Requirements](../voice2action-requirements.md)
 - Dapr Workflows SDK docs (Python): orchestration patterns, deterministic constraints, activity signatures, and retries.

@@ -35,11 +35,13 @@
           fuse-overlayfs
           netavark
           aardvark-dns
+          sqlite
         ];
         darwinPackages = with pkgs; [
           python
           dapr-cli
           zsh
+          sqlite
         ];
       in {
         devShells.default = pkgs.mkShell {
