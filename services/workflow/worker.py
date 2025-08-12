@@ -22,39 +22,25 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    runtime = WorkflowRuntime()
-    # Register workflows (orchestrators)
-    runtime.register_workflow(voice2action_poll_orchestrator)
-    runtime.register_workflow(voice2action_per_file_orchestrator)
-    # Register activities
-    runtime.register_activity(list_onedrive_inbox)
-    runtime.register_activity(mark_file_pending)
-    runtime.register_activity(download_onedrive_file)
-
-    runtime.start()
-    sleep(10)  # wait for workflow runtime to start
-
-    wf_client = DaprWorkflowClient()
-
+    from dapr.clients import DaprClient
     poll_interval = int(os.getenv("ONEDRIVE_VOICE_POLL_INTERVAL", "30"))
     folder_path = os.getenv("ONEDRIVE_VOICE_INBOX")
 
     try:
-        while True:
-            instance_id = wf_client.schedule_new_workflow(
-                workflow=voice2action_poll_orchestrator,
-                input={
-                    "folder_path": folder_path,
-                },
-            )
-            logger.info(f"Scheduled poller workflow instance: {instance_id}")
-            state = wf_client.wait_for_workflow_completion(instance_id, timeout_in_seconds=120)
-            logger.info(f"Poller completed: status={state.runtime_status}")
-            sleep(max(5, poll_interval))
+        with DaprClient() as d:
+            while True:
+                import json
+                event = {"folder_path": folder_path}
+                d.publish_event(
+                    pubsub_name="pubsub",
+                    topic_name="voice2action-schedule",
+                    data=json.dumps(event),
+                    data_content_type="application/json",
+                )
+                logger.info(f"Published schedule event to pubsub: {event}")
+                sleep(poll_interval)
     except KeyboardInterrupt:
         logger.info("Stopping...")
-    finally:
-        runtime.shutdown()
 
 
 if __name__ == "__main__":

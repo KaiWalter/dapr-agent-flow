@@ -26,6 +26,7 @@ class OneDriveService:
         self.logger = logging.getLogger("onedrive")
         self.token_data = self._load_token()
         if not self.token_data:
+            self.logger.info("No stored token found, initializing from environment.")
             # First run: get from env
             env_token = os.getenv("MS_GRAPH_TOKEN")
             if not env_token:

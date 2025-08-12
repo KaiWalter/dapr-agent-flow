@@ -10,3 +10,7 @@ apps:
   - appID: workflows
     appDirPath: ./
     command: ["python", "-m", "services.workflow.worker"]
+  - appID: worker-voice2action
+    appDirPath: ./
+    appPort: 5001
+    command: ["python", "-m", "services.workflow.worker_voice2action"]
