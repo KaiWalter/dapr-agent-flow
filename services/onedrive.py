@@ -25,7 +25,7 @@ class OneDriveService:
         self.logger = logging.getLogger("onedrive")
         self.client_id = os.getenv("MS_GRAPH_CLIENT_ID")
         self.client_secret = os.getenv("MS_GRAPH_CLIENT_SECRET")
-        self.authority = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/common")
+        self.authority = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/consumers")
         self.scope = ["https://graph.microsoft.com/.default", "offline_access"]
         self.token_data = None
         self.app = msal.ConfidentialClientApplication(

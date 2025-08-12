@@ -11,9 +11,9 @@ import time
 # Configuration
 CLIENT_ID = os.getenv("MS_GRAPH_CLIENT_ID")
 CLIENT_SECRET = os.getenv("MS_GRAPH_CLIENT_SECRET")
-AUTHORITY = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/common")
+AUTHORITY = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/consumers")
 REDIRECT_URI = "http://localhost:5000/signin-oidc"
-SCOPE = "User.Read Files.ReadWrite.All"
+SCOPES = ["User.Read", "Files.ReadWrite.All"]
 TOKEN_STATE_KEY = "global_ms_graph_token_state"
 
 app = Flask(__name__)
@@ -31,12 +31,12 @@ def favicon():
 
 @app.route("/")
 def index():
-    # Step 1: Redirect user to Microsoft login
-    auth_url = (
-        f"{AUTHORITY}/oauth2/v2.0/authorize?"
-        f"client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}"
-        f"&response_mode=query&scope={SCOPE.replace(' ', '%20')}"
+    msal_app = msal.ConfidentialClientApplication(
+        client_id=CLIENT_ID,
+        client_credential=CLIENT_SECRET,
+        authority=AUTHORITY
     )
+    auth_url = msal_app.get_authorization_request_url(SCOPES, redirect_uri=REDIRECT_URI)
     return redirect(auth_url)
 
 @app.route("/signin-oidc")
@@ -46,13 +46,13 @@ def signin_oidc():
     if not code:
         return "No code provided", 400
     msal_app = msal.ConfidentialClientApplication(
-        CLIENT_ID,
-        authority=AUTHORITY,
+        client_id=CLIENT_ID,
         client_credential=CLIENT_SECRET,
+        authority=AUTHORITY
     )
     result = msal_app.acquire_token_by_authorization_code(
         code,
-        scopes=SCOPE.split(),
+        scopes=SCOPES,
         redirect_uri=REDIRECT_URI,
     )
     logger.debug(result)
