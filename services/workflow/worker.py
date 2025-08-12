@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 # logging.getLogger("dapr").setLevel(logging.DEBUG)
 # logging.getLogger("dapr.ext.workflow").setLevel(logging.DEBUG)
 logger = logging.getLogger("voice2action")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def main():

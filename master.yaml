@@ -1,12 +1,19 @@
 version: 1
+
 common:
   resourcesPath: ./components
-  logLevel: info
+  logLevel: warn
   appLogDestination: console
   daprdLogDestination: console
   enableAPILogging: false
+  env:
+    ONEDRIVE_VOICE_INBOX: "Recordings/Inbox"
 
 apps:
+  - appID: authenticator
+    appDirPath: ./
+    appPort: 5000
+    command: ["python", "-m", "services.ui.authenticator"]
   - appID: workflows
     appDirPath: ./
     command: ["python", "-m", "services.workflow.worker"]

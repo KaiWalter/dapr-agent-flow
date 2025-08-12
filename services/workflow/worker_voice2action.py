@@ -15,7 +15,7 @@ from activities.onedrive_inbox import (
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("worker_voice2action")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # This app subscribes to a pubsub topic and schedules the workflow when triggered
 from flask import Flask, request, jsonify
@@ -26,13 +26,14 @@ app = Flask(__name__)
 @app.route("/schedule-voice2action", methods=["POST"])
 def schedule_voice2action():
     logger.info("Flask handler triggered for /schedule-voice2action")
-    data = request.get_json()
-    logger.info(f"Received pubsub event: {data}")
-    folder_path = data.get("folder_path")
+    event = request.get_json()
+    logger.info(f"Received pubsub event: {event}")
+    # Unpack CloudEvent: actual input is in event['data']
+    workflow_input = event.get("data", {})
     wf_client = DaprWorkflowClient()
     instance_id = wf_client.schedule_new_workflow(
         workflow=voice2action_poll_orchestrator,
-        input={"folder_path": folder_path},
+        input=workflow_input,
     )
     logger.info(f"Scheduled poller workflow instance: {instance_id}")
     return jsonify({"instance_id": instance_id}), 200
