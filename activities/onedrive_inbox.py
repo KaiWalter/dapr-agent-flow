@@ -24,12 +24,26 @@ def list_onedrive_inbox(ctx, req: dict) -> dict:
     svc = OneDriveService(http)
     files = svc.list_folder(folder)
     logger.info("Found %d items in OneDrive folder before filtering", len(files))
-    # Filter out files that were already downloaded or are pending
+    # Only accept audio/x-wav and audio/mpeg file types
+    AUDIO_EXTS = {".wav", ".mp3"}
+    AUDIO_MIME = {"audio/x-wav", "audio/mpeg"}
+    def is_audio_file(f: FileRef) -> bool:
+        name = f.name.lower()
+        if name.endswith(".wav") or name.endswith(".mp3"):
+            return True
+        # Optionally, check for more metadata if available in FileRef
+        return False
+
+    # Filter out files that were already downloaded or are pending, and by type
     state = StateStore()
     filtered: List[FileRef] = []
     skipped_downloaded = 0
     skipped_pending = 0
+    skipped_type = 0
     for f in files:
+        if not is_audio_file(f):
+            skipped_type += 1
+            continue
         if state.get(DOWNLOADED_PREFIX + f.id):
             skipped_downloaded += 1
             continue
@@ -38,10 +52,11 @@ def list_onedrive_inbox(ctx, req: dict) -> dict:
             continue
         filtered.append(f)
     logger.info(
-        "After filtering: %d new files (skipped %d downloaded, %d pending)",
+        "After filtering: %d new files (skipped %d downloaded, %d pending, %d wrong type)",
         len(filtered),
         skipped_downloaded,
         skipped_pending,
+        skipped_type,
     )
     return ListInboxResult(files=filtered).model_dump()
 

@@ -48,35 +48,29 @@ Environment variables:
 - `STATE_STORE_NAME`: Dapr state store component name (default `statestore`).
 - `START_VOICE_POLL`: `1` to auto-start poller on worker boot (default `1`).
 
-Run locally:
+## Run all components
 
-```bash
+One-time install and prepare dependencies
+
+```
+source .venv/bin/activate
 pip install -r requirements.txt
-# In one terminal
-dapr run --app-id workflows --app-port 3500 --resources-path ./components -- python -m services.workflow.worker
+mkdir -p ./.data
 ```
 
-Notes:
-- Orchestrator is deterministic: only schedules activities and timers.
-- Activities perform I/O to OneDrive via Microsoft Graph and track idempotency in the state store.
-
-
-## Run all components with Dapr Multi-App
-
-Specs are in `apps/`. Start everything with your local `components/`:
+One-time set credentials for MS Graph/OneDrive access. Once the flow was started that access information is stored in `statestore`.
 
 ```
-dapr run -f ./apps --resources-path ./components
+export ONEDRIVE_VOICE_INBOX="Recordings/Inbox"
+export MS_GRAPH_CLIENT_ID=""
+export MS_GRAPH_CLIENT_SECRET=""
+export MS_GRAPH_TOKEN=""
 ```
 
-Apps:
-- workflow-worker (8001): services.workflow.worker
-- llm-orchestrator (8004): services.llm_orchestrator.app
-- agents-api (8010): services.agents_api.app
-
-Then start a Voice2Action instance if desired:
+Start the flow
 
 ```
-python -m services.workflow.client
+export ONEDRIVE_VOICE_INBOX="Recordings/Inbox"
+dapr run -f master.yaml
 ```
 
