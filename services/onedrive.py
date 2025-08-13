@@ -16,7 +16,7 @@ class OneDriveService:
     OneDrive adapter using Microsoft Graph. Handles token refresh and state store for TR001.
     """
 
-    TOKEN_STATE_KEY = "global_ms_graph_token_state"
+    TOKEN_STATE_KEY = "global_ms_graph_token_cache"  # store the MSAL cache, not a custom dict
 
     def __init__(self, http: Optional[HttpClient] = None):
         self.http = http or HttpClient()
@@ -26,59 +26,67 @@ class OneDriveService:
         self.client_id = os.getenv("MS_GRAPH_CLIENT_ID")
         self.client_secret = os.getenv("MS_GRAPH_CLIENT_SECRET")
         self.authority = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/consumers")
-        self.scope = ["https://graph.microsoft.com/.default", "offline_access"]
-        self.token_data = None
+        # Delegated scopes
+        self.scopes = [
+            "User.Read",
+            "Files.ReadWrite"
+        ]
+
+        # Load MSAL token cache from state
+        self.cache = msal.SerializableTokenCache()
+        raw = self.state.get(self.TOKEN_STATE_KEY)
+        if raw:
+            try:
+                self.cache.deserialize(raw)
+            except Exception:
+                self.logger.warning("Failed to deserialize token cache; starting fresh.")
+
         self.app = msal.ConfidentialClientApplication(
             self.client_id,
             authority=self.authority,
             client_credential=self.client_secret,
+            token_cache=self.cache,
         )
-        self.token_data = self._load_token()
-        if not self.token_data:
-            self.logger.info("No stored token found, acquiring token via MSAL.")
-            self.token_data = self._acquire_token_by_client_credentials()
-            self._save_token(self.token_data)
 
-    def _acquire_token_by_client_credentials(self):
-        result = self.app.acquire_token_for_client(scopes=self.scope)
-        if "access_token" not in result:
-            raise RuntimeError(f"MSAL failed to acquire token: {result.get('error_description', result)}")
-        return {
-            "access_token": result["access_token"],
-            "expires_at": int(time.time()) + int(result.get("expires_in", 3600)),
-            "refresh_token": result.get("refresh_token")
-        }
+        # Ensure we have a token (will use refresh token if available)
+        self._ensure_token()
+
+    # ---- First-time bootstrap (run once after user consents) ----
+    def get_authorization_url(self, redirect_uri: str) -> str:
+        return self.app.get_authorization_request_url(self.scopes, redirect_uri=redirect_uri)
+
+    def redeem_auth_code(self, code: str, redirect_uri: str):
+        result = self.app.acquire_token_by_authorization_code(
+            code, scopes=self.scopes, redirect_uri=redirect_uri
+        )
+        self._ensure_ok(result)
+        self._persist_cache()
+
+    # ---- Normal operation / refresh-on-demand ----
+    def _ensure_token(self):
+        accounts = self.app.get_accounts()
+        result = self.app.acquire_token_silent(self.scopes, account=accounts[0] if accounts else None)
+        if not result:
+            raise RuntimeError(
+                "No cached delegated token. Run interactive consent (auth code) once to bootstrap."
+            )
+        self._ensure_ok(result)
+        self._persist_cache()
+
     def _headers(self):
-        token = self._get_valid_access_token()
-        return {"Authorization": f"Bearer {token}"}
+        accounts = self.app.get_accounts()
+        result = self.app.acquire_token_silent(self.scopes, account=accounts[0] if accounts else None)
+        self._ensure_ok(result)
+        self._persist_cache()
+        return {"Authorization": f"Bearer {result['access_token']}"}
 
-    def _load_token(self) -> Optional[Dict[str, Any]]:
-        raw = self.state.get(self.TOKEN_STATE_KEY)
-        if raw:
-            try:
-                return json.loads(raw)
-            except Exception:
-                return None
-        return None
+    def _persist_cache(self):
+        if self.cache.has_state_changed:
+            self.state.set(self.TOKEN_STATE_KEY, self.cache.serialize())
 
-    def _save_token(self, data: Dict[str, Any]):
-        self.state.set(self.TOKEN_STATE_KEY, json.dumps(data))
-
-    def _get_valid_access_token(self) -> str:
-        now = int(time.time())
-        expires_at = self.token_data.get("expires_at", 0)
-        # Defensive: force refresh if expires_at is missing or in the past
-        if not expires_at or expires_at < now:
-            self.logger.warning(f"Token expires_at value {expires_at} is missing or expired, forcing refresh.")
-            self.token_data = self._acquire_token_by_client_credentials()
-            self._save_token(self.token_data)
-            expires_at = self.token_data.get("expires_at", 0)
-        if expires_at - now < 300:
-            # Less than 5 min left, refresh
-            self.logger.info("Refreshing MS Graph token...")
-            self.token_data = self._acquire_token_by_client_credentials()
-            self._save_token(self.token_data)
-        return self.token_data["access_token"]
+    def _ensure_ok(self, result):
+        if not result or "access_token" not in result:
+            raise RuntimeError(f"MSAL token failure: {result.get('error_description', result)}")
 
     # _refresh_token is no longer needed with msal client credentials flow
 

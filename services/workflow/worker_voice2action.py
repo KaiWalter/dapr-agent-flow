@@ -1,21 +1,20 @@
 import logging
+import debugpy
 import os
-import json
 from dapr.ext.workflow import WorkflowRuntime, DaprWorkflowClient
-from dapr.clients import DaprClient
 from workflows.voice2action import (
     voice2action_poll_orchestrator,
-    voice2action_per_file_orchestrator,
-)
+    voice2action_per_file_orchestrator, )
 from activities.onedrive_inbox import (
     list_onedrive_inbox,
     mark_file_pending,
     download_onedrive_file,
 )
 
-logging.basicConfig(level=logging.INFO)
+
+level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
 logger = logging.getLogger("worker_voice2action")
-logger.setLevel(logging.INFO)
+logger.setLevel(getattr(logging, level, logging.INFO))
 
 # This app subscribes to a pubsub topic and schedules the workflow when triggered
 from flask import Flask, request, jsonify
@@ -48,6 +47,11 @@ def start_runtime():
     runtime.start()
 
 if __name__ == "__main__":
+    if os.getenv("DEBUGPY_ENABLE", "0") == "1":
+        debugpy.listen(("0.0.0.0", 5678))
+        print("debugpy: Waiting for debugger attach on port 5678...")
+        debugpy.wait_for_client()
+
     start_runtime()
     port = int(os.environ.get("DAPR_APP_PORT", 5001))
     app.run(host="0.0.0.0", port=port)

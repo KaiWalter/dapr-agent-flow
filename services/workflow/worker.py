@@ -2,6 +2,7 @@ from __future__ import annotations
 from time import sleep
 
 import logging
+import debugpy
 import os
 from dapr.ext.workflow import WorkflowRuntime, DaprWorkflowClient
 from workflows.voice2action import (
@@ -14,12 +15,9 @@ from activities.onedrive_inbox import (
     download_onedrive_file,
 )
 
-logging.basicConfig(level=logging.INFO)
-# logging.getLogger("dapr").setLevel(logging.DEBUG)
-# logging.getLogger("dapr.ext.workflow").setLevel(logging.DEBUG)
-logger = logging.getLogger("voice2action")
-logger.setLevel(logging.INFO)
-
+level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
+logger = logging.getLogger("workflow")
+logger.setLevel(getattr(logging, level, logging.INFO))
 
 def main():
     from dapr.clients import DaprClient
@@ -44,4 +42,9 @@ def main():
 
 
 if __name__ == "__main__":
+    if os.getenv("DEBUGPY_ENABLE", "0") == "1":
+        debugpy.listen(("0.0.0.0", 5678))
+        print("debugpy: Waiting for debugger attach on port 5678...")
+        debugpy.wait_for_client()
+    
     main()

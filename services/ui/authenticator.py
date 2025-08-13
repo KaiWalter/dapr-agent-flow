@@ -1,20 +1,18 @@
-from flask import Flask, redirect, request, send_file, make_response
+from flask import Flask, redirect, request, send_file
 from services.state_store import StateStore
 import base64
 import io
-import json
 import logging
 import os
 import msal
-import time
 
 # Configuration
 CLIENT_ID = os.getenv("MS_GRAPH_CLIENT_ID")
 CLIENT_SECRET = os.getenv("MS_GRAPH_CLIENT_SECRET")
 AUTHORITY = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/consumers")
 REDIRECT_URI = "http://localhost:5000/signin-oidc"
-SCOPES = ["User.Read", "Files.ReadWrite.All"]
-TOKEN_STATE_KEY = "global_ms_graph_token_state"
+SCOPES = ["User.Read", "Files.ReadWrite"]
+TOKEN_STATE_KEY = "global_ms_graph_token_cache"  # persist MSAL cache
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -31,10 +29,11 @@ def favicon():
 
 @app.route("/")
 def index():
+    # Create an MSAL app (cache optional here, used mainly after code redemption)
     msal_app = msal.ConfidentialClientApplication(
         client_id=CLIENT_ID,
         client_credential=CLIENT_SECRET,
-        authority=AUTHORITY
+        authority=AUTHORITY,
     )
     auth_url = msal_app.get_authorization_request_url(SCOPES, redirect_uri=REDIRECT_URI)
     return redirect(auth_url)
@@ -45,32 +44,34 @@ def signin_oidc():
     code = request.args.get("code")
     if not code:
         return "No code provided", 400
+    # Load existing cache (if any) so we keep accounts/refresh tokens
+    cache = msal.SerializableTokenCache()
+    state = StateStore()
+    raw = state.get(TOKEN_STATE_KEY)
+    if raw:
+        try:
+            cache.deserialize(raw)
+        except Exception:
+            logger.warning("Failed to deserialize token cache; starting fresh.")
     msal_app = msal.ConfidentialClientApplication(
         client_id=CLIENT_ID,
         client_credential=CLIENT_SECRET,
-        authority=AUTHORITY
+        authority=AUTHORITY,
+        token_cache=cache,
     )
     result = msal_app.acquire_token_by_authorization_code(
         code,
         scopes=SCOPES,
         redirect_uri=REDIRECT_URI,
     )
-    logger.debug(result)
+    logger.debug({k: v for k, v in result.items() if k != "access_token"})
     if "access_token" not in result:
         logger.error(f"Token request failed: {result.get('error_description', result)}")
         return f"Token request failed: {result.get('error_description', result)}", 400
-    # Store in statestore
-    state = StateStore()
-    expires_in = int(result.get("expires_in", 3600))
-    expires_at = int(time.time()) + expires_in
-    token_data = {
-        "access_token": result["access_token"],
-        "expires_at": expires_at,
-        "refresh_token": result.get("refresh_token"),
-    }
-    logger.debug(token_data)
-    state.set(TOKEN_STATE_KEY, json.dumps(token_data))
-    logger.info("Token stored in statestore.")
+    # Persist MSAL cache (includes refresh tokens and accounts)
+    if cache.has_state_changed:
+        state.set(TOKEN_STATE_KEY, cache.serialize())
+    logger.info("MSAL token cache stored in statestore.")
     return "Authentication successful! Token stored. You may close this window."
 
 if __name__ == "__main__":

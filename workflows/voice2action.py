@@ -35,6 +35,7 @@ def voice2action_poll_orchestrator(ctx: DaprWorkflowContext, input: Optional[dic
             activity=list_onedrive_inbox,
             input=ListInboxRequest(folder_path=folder_path).model_dump(),
         )
+        wf_log(ctx, "voice2action_poll: files_result=%s", files_result)
         files = [FileRef.model_validate(f) for f in files_result.get("files", [])]
         wf_log(ctx, "voice2action_poll: %d new files detected", len(files))
         for f in files:
