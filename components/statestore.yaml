@@ -10,3 +10,5 @@ spec:
       value: "true"
     - name: connectionString
       value: "file:./.data/dapr_statestore.db?_busy_timeout=5000&_journal_mode=WAL"
+    - name: keyPrefix
+      value: none

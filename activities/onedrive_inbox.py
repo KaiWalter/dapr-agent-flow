@@ -10,7 +10,10 @@ from services.state_store import StateStore
 from services.http_client import HttpClient
 
 
+level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
 logger = logging.getLogger("voice2action")
+logger.setLevel(getattr(logging, level, logging.INFO))
+
 PENDING_PREFIX = "voice_inbox_pending:"  # to avoid duplicates during polling
 DOWNLOADED_PREFIX = "voice_inbox_downloaded:"  # idempotency tracking
 DOWNLOAD_DIR = os.getenv("VOICE_DOWNLOAD_DIR", "./downloads/voice")
@@ -21,9 +24,16 @@ def list_onedrive_inbox(ctx, req: dict) -> dict:
     folder = data.folder_path or os.getenv("ONEDRIVE_VOICE_INBOX", "/Voice/Inbox")
     logger.info("Listing OneDrive inbox folder=%s", folder)
     http = HttpClient()
-    svc = OneDriveService(http)
-    files = svc.list_folder(folder)
-    logger.info("Found %d items in OneDrive folder before filtering", len(files))
+    try:
+        svc = OneDriveService(http)
+        # Log if MSAL token cache is present
+        cache_raw = svc.state.get(svc.TOKEN_STATE_KEY)
+        logger.info("MSAL token cache present: %s", bool(cache_raw))
+        files = svc.list_folder(folder)
+        logger.info("Found %d items in OneDrive folder before filtering", len(files))
+    except Exception as e:
+        logger.error("Exception in OneDriveService.list_folder: %s", e, exc_info=True)
+        return {"files": [], "error": str(e)}
     # Only accept audio/x-wav and audio/mpeg file types
     AUDIO_EXTS = {".wav", ".mp3"}
     AUDIO_MIME = {"audio/x-wav", "audio/mpeg"}

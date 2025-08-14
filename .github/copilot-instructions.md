@@ -10,12 +10,26 @@ Big picture
 Solution layout
 - workflows/: Dapr Workflow orchestrators (e.g., `workflows/voice2action.py`, `workflows/todo_capture.py`).
 - activities/: Dapr Workflow activities doing I/O (e.g., `activities/downloader_activity.py`, `activities/fetch_calendar.py`).
-- agents/: Agent step implementations, prompts/config, tools, routing (e.g., `agents/inbox_agent.py`, `agents/downloader_agent.py`).
+- agents/ (optional): Agent step implementations, prompts/config, tools, routing (e.g., `agents/inbox_agent.py`, `agents/downloader_agent.py`).
 - models/: Pydantic/dataclass request/response contracts shared across workflows/activities.
 - services/: Thin adapters to external APIs (Graph, Gmail, Notion, http client, storage, etc.).
-- services/workflow/: Workflow worker and optional clients (`worker.py`, `client.py`).
-- services/llm_orchestrator/: If using an LLM-first orchestrator service, host it here (e.g., `app.py`).
+  - Group capabilities by module: one capability per file (e.g., `services/onedrive.py`, `services/state_store.py`, `services/http_client.py`). Keep these stateless.
+- services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a Flask HTTP subscriber for Dapr pub/sub; `worker.py` publishes schedule events).
+- services/ui/: Minimal UI helpers or launchers (e.g., `services/ui/authenticator.py`). Place any CLI/UI entrypoints here if needed.
+- services/llm_orchestrator/ (optional): If using an LLM-first orchestrator service, host it here (e.g., `app.py`).
 - components/: Dapr components (pubsub, state, bindings). Keep secrets in secret stores, not code.
+
+Scaffolding and app structure rules (repo-specific)
+- Do NOT create new top-level app folders or a src/ directory. Put new files directly into the folders above.
+- Reuse the single shared `requirements.txt` at the repo root. Do NOT create per-app requirements files.
+- Reuse the common Dapr components in `components/`. Do NOT duplicate component manifests.
+- When adding:
+  - a new workflow: add a file under `workflows/` and register it in the existing worker under `services/workflow/`.
+  - a new activity: add under `activities/` and register in the worker.
+  - a new service adapter: add a new module under `services/` (one capability per file).
+  - a new UI/CLI entrypoint: add under `services/ui/` (no frameworks unless requested).
+- Do not add new virtualenv or dependency managers; use the existing repo setup (e.g., `requirements.txt`, `flake.nix`).
+- Note: The pub/sub subscriber HTTP endpoint belongs to the workflow service (Flask in `services/workflow/`), not to `services/ui/`.
 
 Choosing Workflow vs LLM Orchestration
 - Use Dapr Workflow orchestrator when you need:
@@ -49,7 +63,7 @@ Activities
 - Name activities to reflect intent.
 
 Agents (Dapr Agents framework)
-- Define agent step functions and config under agents/. Keep system prompts, tool wiring, and routing policies nearby.
+- Define agent step functions and config under agents/ when used. Keep system prompts, tool wiring, and routing policies nearby.
 - Register tools that wrap services/ calls; type inputs/outputs via models/.
 - Invoke agents only from Activities, never from orchestrators. Prefer one activity = one agent step.
 
@@ -63,22 +77,34 @@ Conventions
 - Logging: use a helper (e.g., `wf_log`) to mirror `ctx.log(...)` into the Python logger `voice2action` for visibility in process logs.
 - Inputs/Outputs: define Pydantic models in models/ and serialize to dicts when crossing workflow/activity boundaries.
 - When calling activities/child workflows, pass function objects to avoid name mismatches.
+- Single shared `requirements.txt` (no per-app dependency files) and no `src/` folder.
+- Services are split by capability into separate modules under `services/`.
+- UI helpers/entrypoints live under `services/ui/`.
 
 Scaffolding examples
 - Minimal “hello agent” flow: `HelloWorld` orchestrator calls an activity that invokes a simple Agent with a single tool, returns a short summary string.
 - Utility activity: HTTP GET wrapper under `activities/http_get.py` using a `services/http_client.py` adapter.
 - Voice to Action: Poller orchestrator (single-shot) -> fan-out per-file child orchestrators -> activities download and mark state.
+- Note: Example filenames are illustrative; create them only when needed.
 
 Local multi-app run (Dapr)
 - Run all apps with a single spec file:
   - `dapr run -f ./master.yaml` (includes `resourcesPath: ./components`, `logLevel: debug`, and `enableAPILogging: true`).
 - Ensure the state store component sets `actorStateStore: true` so workflows/actors persist state.
+- All services/workers/workflows reuse the common `components/` manifests.
+- Pub/Sub: The workflow app exposes a Flask subscriber at `/schedule-voice2action` matching the configured topic (e.g., `voice2action-schedule`).
 
 Secrets and configuration
 - Do not embed secrets in code. Use a Dapr secret store and environment variables; activities read configuration via env and resolve secrets via Dapr if needed.
 - Voice2Action env:
   - `ONEDRIVE_VOICE_INBOX`: OneDrive folder to poll.
-  - `ONEDRIVE_VOICE_POLL_INTERVAL`: Poll cadence in seconds (used by the worker to schedule the single-shot poll orchestrator).
+  - `ONEDRIVE_VOICE_POLL_INTERVAL`: Poll cadence in seconds (used by the publisher to emit schedule events).
+  - `VOICE_DOWNLOAD_DIR`: Local folder to save downloads (default `./downloads/voice`).
+- Graph/OneDrive env (current implementation uses MSAL client credentials):
+  - `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
+  - Tokens are persisted in the Dapr state store and refreshed automatically before expiry.
+- State store env:
+  - `STATE_STORE_NAME`: Dapr state store name (default `statestore`).
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References

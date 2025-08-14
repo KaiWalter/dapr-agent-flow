@@ -1,7 +1,11 @@
+## Dapr State Key Prefix Strategy
+
+This project uses the Dapr state key prefix strategy `none` (see [Dapr docs](https://docs.dapr.io/developing-applications/building-blocks/state-management/howto-share-state/#specifying-a-state-prefix-strategy)), so that all Dapr applications in the solution can share state using the same key names. This is required for scenarios like sharing a Microsoft Graph token between authenticator and workflow apps.
 # Dapr Agent Flow
 
 With this repository I want to explore various personal productivity flows I already implemented using N8N, Logic Apps or PowerAutomate Flows with **Dapr Agents** framework.
 
+> **DISCLAIMER** : almost to 95% created with GitHub Copilot
 
 ## Voice2Action workflow
 
