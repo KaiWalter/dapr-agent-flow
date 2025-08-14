@@ -1,82 +1,155 @@
 # Dapr Agent Flow
 
-With this repository I want to explore various personal productivity flows I already implemented using N8N, Logic Apps or PowerAutomate Flows with **Dapr Agents** framework.
+This repository explores personal productivity flows using the **Dapr Agents** framework, implementing voice-to-action workflows that automatically process voice recordings and execute appropriate actions.
 
-> **DISCLAIMER** : almost to 95% created with GitHub Copilot
+> **DISCLAIMER**: Almost 95% created with GitHub Copilot
 
-Origin is a [N8N](https://n8n.io) based flow that waits for voice recordings on a OneDrive folder, transcribes the recording, classifies the content and tries to figure out that it is simply a note to be send to me via email or a to do task to be created.
+The implementation is based on a [N8N](https://n8n.io) flow that monitors voice recordings on OneDrive, transcribes them, classifies the content, and determines whether to create tasks or send email notifications.
 
 ![](images/original-n8n-flow.png)
 
+## Voice2Action Workflow
 
-## Voice2Action workflow
+The Voice2Action workflow implements an end-to-end voice processing pipeline with three main stages:
 
-The workflow `Voice2Action` polls a OneDrive folder and downloads new voice recordings to a local inbox.
+### FR001: OneDrive Voice Recording Download
+- Polls a OneDrive folder for new voice recordings (`audio/x-wav` and `audio/mpeg` files only)
+- Downloads only files not previously processed
+- Automatic polling at configurable intervals
+- Uses MSAL client credentials flow for Graph API authentication
 
-- Required env vars:
-  - `ONEDRIVE_VOICE_INBOX`: path under OneDrive root to poll
-  - `ONEDRIVE_VOICE_POLL_INTERVAL`: seconds between polls
-  - `VOICE2ACTION_DOWNLOADER_CONFIG`: JSON containing Graph access (see below)
-- Optional env vars:
-  - `VOICE_LOCAL_INBOX`: local folder to write downloads (default `./data/voice_inbox`)
+### FR002: Voice Transcription  
+- Transcribes voice recordings using OpenAI Whisper API
+- Stores transcription in JSON format alongside the original file
+- Preserves file structure and metadata
 
-Downloader config JSON example for `VOICE2ACTION_DOWNLOADER_CONFIG`:
+### FR003: LLM-Based Action Planning and Execution
+- Uses Dapr Agents with LLM Orchestrator to analyze transcriptions
+- Determines appropriate actions based on content:
+  - **Task Creation**: Creates todo items for detected commands/reminders
+  - **Email Fallback**: Sends email notifications for general notes
+- Implements agent-based architecture with specialized agents
+
+
+## Architecture
+
+The system uses the following components:
+
+### Dapr Workflow Orchestration
+- **Worker Services**: Handle workflow execution and pub/sub event processing
+- **Activities**: Implement individual workflow steps (download, transcribe, classify)
+- **State Management**: Persistent storage via Dapr state store for workflow state and file tracking
+
+### LLM Agent Framework
+- **LLM Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
+- **TaskPlanner Agent** (port 5101): Specialized agent for creating and managing tasks
+- **FallbackEmailer Agent** (port 5102): Handles email notifications for unclassified content
+
+### Services
+- **OneDrive Integration**: MS Graph API for file operations with automatic token management
+- **OpenAI Integration**: Whisper API for transcription, GPT models for content classification
+- **HTTP Client**: Reusable service for external API calls
+- **State Store**: Centralized state management for workflows and agent registries
+
+## Environment Configuration
+
+### Required Environment Variables
+
+```bash
+# OneDrive Configuration
+ONEDRIVE_VOICE_INBOX="/folder/sub-folder"    # OneDrive folder path to monitor
+ONEDRIVE_VOICE_POLL_INTERVAL=30              # Polling interval in seconds (min: 5)
+
+# MS Graph Authentication (MSAL Client Credentials)
+MS_GRAPH_CLIENT_ID="your-client-id"
+MS_GRAPH_CLIENT_SECRET="your-client-secret"
+MS_GRAPH_AUTHORITY="https://login.microsoftonline.com/consumers"  # Default
+
+# OpenAI Configuration  
+OPENAI_API_KEY="your-openai-api-key"
+OPENAI_CLASSIFICATION_MODEL="gpt-4o-mini"    # Default model for classification
+
+# Local Storage
+VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
 ```
-{
-  "folder_path": "VoiceUploads",
-  "access_token": "<graph_access_token>",
-  "graph_base_url": "https://graph.microsoft.com/v1.0"
-}
+
+### Optional Environment Variables
+
+```bash
+# Dapr Configuration
+STATE_STORE_NAME="statestore"                # Dapr state store component name
+DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
+DAPR_LOG_LEVEL="info"                       # Logging level
+
+# Development/Debugging
+DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
+PYDEVD_DISABLE_FILE_VALIDATION="1"          # PyCharm debugging optimization
 ```
 
-Start worker with Dapr components:
-```
-dapr run --app-id workflow-worker --app-port 8001 --resources-path ./components -- python -m services.workflow.worker
-```
+## Quick Start
 
-Start a workflow instance (single-shot or bounded testing):
-```
-python -m services.workflow.client  # optionally set env CORR_ID, IDEMPOTENCY_KEY
-```
+### 1. Setup Dependencies
 
-Notes
-- Only files not previously downloaded are fetched by comparing last-modified checkpoint (`since`).
-- Polling cadence is controlled by `ONEDRIVE_VOICE_POLL_INTERVAL` via a deterministic workflow timer.
-
-
-## Voice2Action FR001 (OneDrive polling and download)
-
-Environment variables:
-- `ONEDRIVE_VOICE_INBOX`: OneDrive folder path to poll (e.g., `/Voice/Inbox`).
-- `ONEDRIVE_VOICE_POLL_INTERVAL`: Poll interval in seconds (default 30, min 5).
-- `MS_GRAPH_TOKEN`: OAuth token for Microsoft Graph (bearer). Use a Dapr secret store in production.
-- `VOICE_DOWNLOAD_DIR`: Local directory for downloaded files (default `./downloads/voice`).
-- `STATE_STORE_NAME`: Dapr state store component name (default `statestore`).
-- `START_VOICE_POLL`: `1` to auto-start poller on worker boot (default `1`).
-
-## Run all components
-
-One-time install and prepare dependencies
-
-```
-source .venv/bin/activate
+```bash
+# Install dependencies (Python virtual environment recommended)
 pip install -r requirements.txt
-mkdir -p ./.data
+
+# Create necessary directories
+mkdir -p ./downloads/voice
 ```
 
-One-time set credentials for MS Graph/OneDrive access. Once the flow was started that access information is stored in `statestore`.
+### 2. Configure Environment
 
-```
-export ONEDRIVE_VOICE_INBOX="Recordings/Inbox"
-export MS_GRAPH_CLIENT_ID=""
-export MS_GRAPH_CLIENT_SECRET=""
-export MS_GRAPH_TOKEN=""
+Set up your credentials (store securely in production):
+
+```bash
+# OneDrive/Graph Configuration  
+export ONEDRIVE_VOICE_INBOX="/Recordings/Inbox"
+export MS_GRAPH_CLIENT_ID="your-azure-app-client-id"
+export MS_GRAPH_CLIENT_SECRET="your-azure-app-client-secret"
+
+# OpenAI Configuration
+export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-Start the flow
+### 3. Run the Complete System
 
-```
-export ONEDRIVE_VOICE_INBOX="Recordings/Inbox"
+Start all services using the Dapr multi-app runner:
+
+```bash
 dapr run -f master.yaml
 ```
+
+This starts:
+- **authenticator** (port 5000): Initial Graph authentication helper
+- **workflows**: Workflow polling and orchestration worker  
+- **worker-voice2action** (port 5001): Voice2Action workflow worker with pub/sub subscriber
+- **llm-orchestrator** (port 5100): LLM-based action planning orchestrator
+- **agent-taskplanner** (port 5101): Task creation agent
+- **agent-fallback-emailer** (port 5102): Email notification agent
+
+### 4. Initial Authentication
+
+On first run, use the authenticator service to obtain Graph API tokens:
+```bash
+# Navigate to http://localhost:5000 to complete OAuth flow
+# Tokens are automatically stored in Dapr state store for reuse
+```
+
+## Monitoring and Logs
+
+- **Workflow State**: Check Dapr state store for workflow execution status
+- **Agent States**: Individual agents maintain state in `{AgentName}_state.json` files
+- **File Processing**: Monitor `./downloads/voice/` for processed recordings and transcriptions
+- **Logs**: All services output structured logs with correlation IDs for tracing
+
+## Development
+
+The codebase follows Dapr Agents best practices:
+- **Deterministic Orchestrators**: No I/O operations in workflow orchestrators
+- **Idempotent Activities**: All activities support retry and state recovery
+- **Event-Driven Architecture**: Pub/sub messaging between workflows and agents
+- **Structured Logging**: Consistent logging format with correlation tracking
+
+See [voice2action-requirements.md](./voice2action-requirements.md) for detailed functional and technical requirements.
 
