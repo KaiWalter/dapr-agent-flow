@@ -1,12 +1,17 @@
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import List, Optional
 from pydantic import BaseModel
 
+# Classification models for FR003
+class ClassificationRequest(BaseModel):
+    transcription_path: str
+    prompt_path: str
 
-    # Transcription models for FR002
-from pydantic import BaseModel
+class ClassificationResult(BaseModel):
+    result: dict
 
+# Transcription models for FR002
 class TranscriptionRequest(BaseModel):
     audio_path: str
     mime_type: str = 'audio/mpeg'  # default, can be audio/x-wav

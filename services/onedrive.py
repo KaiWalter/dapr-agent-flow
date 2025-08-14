@@ -2,12 +2,14 @@ from __future__ import annotations
 from .http_client import HttpClient
 from .state_store import StateStore
 from models.voice2action import FileRef
+
 from typing import List, Optional, Dict, Any
 import json
 import logging
 import msal
 import os
 import time
+import requests
 
 
 
@@ -88,7 +90,19 @@ class OneDriveService:
         if not result or "access_token" not in result:
             raise RuntimeError(f"MSAL token failure: {result.get('error_description', result)}")
 
-    # _refresh_token is no longer needed with msal client credentials flow
+    # reqular operations
+    def download_file_by_path(self, onedrive_path: str, local_path: str):
+        """
+        Download a file from OneDrive by its path (e.g. /folder/file.txt) to a local file.
+        Uses requests directly for streaming.
+        """
+        url = f"{self.base_url}/drive/root:{onedrive_path}:/content"
+        resp = requests.get(url, headers=self._headers(), stream=True)
+        resp.raise_for_status()
+        with open(local_path, 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
 
     def list_folder(self, folder_path: str) -> List[FileRef]:
         # GET /me/drive/root:/path:/children

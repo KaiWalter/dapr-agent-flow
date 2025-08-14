@@ -11,6 +11,7 @@ from activities.onedrive_inbox import (
     download_onedrive_file,
 )
 from activities.transcribe_audio import transcribe_audio_activity
+from activities.classify_transcription import classify_transcription_activity
 
 
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -58,6 +59,7 @@ def start_runtime():
     runtime.register_activity(mark_file_pending)
     runtime.register_activity(download_onedrive_file)
     runtime.register_activity(transcribe_audio_activity)
+    runtime.register_activity(classify_transcription_activity)
     runtime.start()
 
 if __name__ == "__main__":

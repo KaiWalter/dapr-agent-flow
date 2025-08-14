@@ -2,12 +2,13 @@ version: 1
 
 common:
   resourcesPath: ./components
-  logLevel: debug
+  logLevel: info
   appLogDestination: console
   daprdLogDestination: console
   enableAPILogging: false
   env:
-    ONEDRIVE_VOICE_INBOX: "Recordings/Inbox"
+    ONEDRIVE_VOICE_INBOX: "/Recordings/Inbox"
+    ONEDRIVE_VOICE_PROMPT: "/Recordings/Classification_Prompt.txt"
 
 apps:
   - appID: authenticator

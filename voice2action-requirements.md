@@ -6,7 +6,7 @@
 ### Voice to Action workflow
 
 - **FR001**: Download new voice recordings
-	- Download new recordings from a OneDrive folder specified by `ONEDRIVE_VOICE_INBOX`.
+	- Download new recordings from a OneDrive folder specified by `ONEDRIVE_VOICE_INBOX` in the format `/folder/sub-folder`.
 	- Only files not yet downloaded are fetched.
 	- System polls automatically at an interval set by `ONEDRIVE_VOICE_POLL_INTERVAL` (seconds).
 	- For each new recording, a separate workflow instance is started to handle the download.
@@ -14,7 +14,13 @@
 	- consider `TR001`
 
 - **FR002**: Transcribe downloaded voice recording
-    - as a second step transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`
+    - As the next step transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`
+	- consider `TR002`
+
+- **FR003**: Classify Transcription
+	- As the next step classify the transcription and store the result as a proper JSON object (not a string) in a `.evaluated.json` file next to the recording, so that it can be used to invoke actions on succeeding steps.
+	- Include the transcribed text as property `transcription` also in the evaluated JSON.
+	- Download classification prompt from a OneDrive item specified by `ONEDRIVE_VOICE_PROMPT` in the format `/folder1/filename.txt`.
 	- consider `TR002`
 
 ## Technical
@@ -25,6 +31,7 @@
 	- Tokens are refreshed automatically before expiry by the OneDrive service; activities/services do not handle tokens directly.
 	- No manual token provisioning is required after initial configuration; all token management is handled transparently.
 
-- **TR002**: Use OpenAI Whisper API for transcription
+- **TR002**: Use OpenAI Whisper API for transcription and OpenAI models for classifications
     - Use `OPENAI_API_KEY` (from environment or secret store) for authentication.
+	- For classifcation use model provided by `OPENAI_CLASSIFICATION_MODEL`, make `GPT-4.1-MINI` the default.
 
