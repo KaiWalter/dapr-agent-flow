@@ -12,7 +12,8 @@
 
 ## Technical
 
-- **TR001**: Keep access token to MS Graph alive
-	- Provide the access token to MS Graph once via `MS_GRAPH_TOKEN` (env or secret).
-	- Token is refreshed automatically before expiry.
-	- Refresh token can be stored in the local state store.
+- **TR001**: MS Graph authentication and token management
+	- Use MSAL client credentials flow with `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET` (from environment or secret store).
+	- Store the MSAL token cache (including refresh tokens) in the Dapr state store for durability and reuse across restarts.
+	- Tokens are refreshed automatically before expiry by the OneDrive service; activities/services do not handle tokens directly.
+	- No manual token provisioning is required after initial configuration; all token management is handled transparently.
