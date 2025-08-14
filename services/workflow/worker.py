@@ -16,8 +16,20 @@ from activities.onedrive_inbox import (
 )
 
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
+
+# Ensure a root handler exists so all module loggers emit to console
+root = logging.getLogger()
+if not root.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+root.setLevel(getattr(logging, level, logging.INFO))
+
 logger = logging.getLogger("workflow")
-logger.setLevel(getattr(logging, level, logging.INFO))
 
 def main():
     from dapr.clients import DaprClient
