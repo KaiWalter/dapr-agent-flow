@@ -9,6 +9,7 @@ from activities.onedrive_inbox import (
     mark_file_pending,
     download_onedrive_file,
 )
+from activities.transcribe_audio import transcribe_audio_activity
 
 logger = logging.getLogger("voice2action")
 
@@ -69,12 +70,21 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
     try:
         file = FileRef.model_validate(input)
         wf_log(ctx, "voice2action_per_file: downloading id=%s name=%s", file.id, file.name)
-        yield ctx.call_activity(
+        download_result = yield ctx.call_activity(
             activity=download_onedrive_file,
             input=DownloadRequest(file=file).model_dump(),
         )
-        wf_log(ctx, "voice2action_per_file: done id=%s", file.id)
-        return {"ok": True}
+        # download_result contains the local path under 'path'
+        audio_path = download_result.get('path')
+        # Derive MIME type from file extension (.mp3 -> audio/mpeg, .wav -> audio/x-wav)
+        mime_type = 'audio/mpeg' if file.name.lower().endswith('.mp3') else 'audio/x-wav'
+        wf_log(ctx, "voice2action_per_file: transcribing id=%s path=%s", file.id, audio_path)
+        transcription_result = yield ctx.call_activity(
+            activity=transcribe_audio_activity,
+            input={"audio_path": audio_path, "mime_type": mime_type},
+        )
+        wf_log(ctx, "voice2action_per_file: transcription done id=%s", file.id)
+        return {"ok": True, "transcription": transcription_result}
     except Exception as e:
         wf_log_exception(ctx, "Exception in voice2action_per_file_orchestrator", e)
         raise

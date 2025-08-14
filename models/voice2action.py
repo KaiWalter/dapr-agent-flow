@@ -4,6 +4,16 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
+    # Transcription models for FR002
+from pydantic import BaseModel
+
+class TranscriptionRequest(BaseModel):
+    audio_path: str
+    mime_type: str = 'audio/mpeg'  # default, can be audio/x-wav
+
+class TranscriptionResult(BaseModel):
+    text: str
+
 class FileRef(BaseModel):
     id: str
     name: str
