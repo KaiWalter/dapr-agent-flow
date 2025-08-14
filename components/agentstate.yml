@@ -1,7 +1,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: statestore
+  name: agentstatestore
 spec:
   type: state.sqlite
   version: v1
@@ -10,3 +10,5 @@ spec:
       value: "file:./.data/dapr_statestore.db?_busy_timeout=5000&_journal_mode=WAL"
     - name: keyPrefix
       value: none
+    - name: actorStateStore
+      value: "false"

@@ -11,17 +11,17 @@
 	- System polls automatically at an interval set by `ONEDRIVE_VOICE_POLL_INTERVAL` (seconds).
 	- For each new recording, a separate workflow instance is started to handle the download.
     - only accept `audio/x-wav` and `audio/mpeg` file types
-	- consider `TR001`
+	- relevant: `TR001`
 
 - **FR002**: Transcribe downloaded voice recording
     - As the next step transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`
-	- consider `TR002`
+	- relevant: `TR002`
 
-- **FR003**: Classify Transcription
-	- As the next step classify the transcription and store the result as a proper JSON object (not a string) in a `.evaluated.json` file next to the recording, so that it can be used to invoke actions on succeeding steps.
-	- Include the transcribed text as property `transcription` also in the evaluated JSON.
-	- Download classification prompt from a OneDrive item specified by `ONEDRIVE_VOICE_PROMPT` in the format `/folder1/filename.txt`.
-	- consider `TR002`
+- **FR003**: Plan and Execute Actions
+	- As the next step use the transcription to plan and execute actions in an LLM agentic, LLM based flow [see `TR003`].
+	- Create an action to create a task in a to do list - leave the implementation empty for the moment - when the LLM detects a command or instruction to create a task or set a reminder.
+	- As a fallback action, if no other action is detected, create an action to send an email - leave the implementation empty for the moment.
+	- relevant: `TR002`
 
 ## Technical
 
@@ -35,3 +35,8 @@
     - Use `OPENAI_API_KEY` (from environment or secret store) for authentication.
 	- For classifcation use model provided by `OPENAI_CLASSIFICATION_MODEL`, make `GPT-4.1-MINI` the default.
 
+- **TR003**: Use Dapr Agent LLM based orchestrator to determine actions.
+	- Run the LLM Orchestrator service on port 5100 and agents on dedicated ports (e.g., 5101, 5102).
+	- Publish classification results to the orchestrator via Dapr pub/sub (component `pubsub`) on topic `LLMOrchestrator`.
+	- Each action identified shall be implemented as a tool available to the orchestrator/agents.
+	- Use <https://github.com/dapr/dapr-agents/tree/main/quickstarts/05-multi-agent-workflows/services> as scaffolding structure.

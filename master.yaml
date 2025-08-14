@@ -28,4 +28,39 @@ apps:
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
+      DAPR_LLM_ORCHESTRATOR_TOPIC: LLMOrchestrator
     command: ["python", "-m", "services.workflow.worker_voice2action"]
+  - appID: llm-orchestrator
+    appDirPath: ./
+    appPort: 5100
+    env:
+      LLM_ORCH_PORT: 5100
+      DAPR_PUBSUB_NAME: pubsub
+      DAPR_STATESTORE_NAME: statestore
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
+      DAPR_BROADCAST_TOPIC: beacon_channel
+    command: ["python", "-m", "services.llm_orchestrator.app"]
+
+  - appID: agent-taskplanner
+    appDirPath: ./
+    appPort: 5101
+    env:
+      DAPR_PUBSUB_NAME: pubsub
+      DAPR_STATESTORE_NAME: statestore
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DEBUGPY_ENABLE: 0
+      PYDEVD_DISABLE_FILE_VALIDATION: 1
+    command: ["python", "-m", "services.llm_orchestrator.agent_tasker"]
+
+  - appID: agent-fallback-emailer
+    appDirPath: ./
+    appPort: 5102
+    env:
+      DAPR_PUBSUB_NAME: pubsub
+      DAPR_STATESTORE_NAME: statestore
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DEBUGPY_ENABLE: 0
+      PYDEVD_DISABLE_FILE_VALIDATION: 1
+    command: ["python", "-m", "services.llm_orchestrator.agent_fallback_emailer"]

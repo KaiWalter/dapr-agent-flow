@@ -7,7 +7,7 @@ def classify_transcription_activity(ctx, input: dict) -> dict:
     Activity to classify a transcription using OpenAI and save the result as a JSON file next to the audio.
     Input: {
         'transcription_path': str,  # Path to the transcription JSON file
-        'prompt_path': str,         # Path to the prompt file
+        'prompt_onedrive_path': str, # OneDrive path to the prompt file
     }
     Output: {
         'classification_path': str,  # Path to the evaluated JSON file
