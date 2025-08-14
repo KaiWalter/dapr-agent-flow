@@ -77,7 +77,7 @@ VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
 
 ```bash
 # Dapr Configuration
-STATE_STORE_NAME="statestore"                # Dapr state store component name
+STATE_STORE_NAME="workflowstatestore"                # Dapr state store component name
 DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
 DAPR_LOG_LEVEL="info"                       # Logging level
 

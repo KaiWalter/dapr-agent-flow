@@ -1,5 +1,5 @@
 from flask import Flask, redirect, request, send_file
-from services.state_store import StateStore
+from services.token_state_store import TokenStateStore
 import base64
 import io
 import logging
@@ -46,7 +46,7 @@ def signin_oidc():
         return "No code provided", 400
     # Load existing cache (if any) so we keep accounts/refresh tokens
     cache = msal.SerializableTokenCache()
-    state = StateStore()
+    state = TokenStateStore()
     raw = state.get(TOKEN_STATE_KEY)
     if raw:
         try:
@@ -71,7 +71,7 @@ def signin_oidc():
     # Persist MSAL cache (includes refresh tokens and accounts)
     if cache.has_state_changed:
         state.set(TOKEN_STATE_KEY, cache.serialize())
-    logger.info("MSAL token cache stored in statestore.")
+    logger.info("MSAL token cache stored in tokenstatestore.")
     return "Authentication successful! Token stored. You may close this window."
 
 if __name__ == "__main__":

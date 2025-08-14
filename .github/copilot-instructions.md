@@ -149,7 +149,7 @@ Secrets and configuration
   - `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
   - Tokens are persisted in the Dapr state store and refreshed automatically before expiry.
 - State store env:
-  - `STATE_STORE_NAME`: Dapr state store name (default `statestore`).
+  - `STATE_STORE_NAME`: Dapr state store name (default `workflowstatestore`).
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References

@@ -30,7 +30,7 @@ async def main():
             LLMOrchestrator(
                 name="LLMOrchestrator",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-                state_store_name=os.getenv("DAPR_STATESTORE_NAME", "statestore"),
+                state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
                 agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",

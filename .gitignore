@@ -1,5 +1,8 @@
 # Data files
 .data/
+FallbackEmailer_state.json
+LLMOrchestrator_state.json
+TaskPlanner_state.json
 
 # Python
 __pycache__/

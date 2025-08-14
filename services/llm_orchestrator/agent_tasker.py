@@ -3,7 +3,6 @@ from dapr_agents import DurableAgent
 import asyncio
 import logging
 import os
-import debugpy
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -39,9 +38,9 @@ async def main():
                 "Respond concisely and only with structured results."
             ],
             message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-            state_store_name=os.getenv("DAPR_STATESTORE_NAME", "statestore"),
+            state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
             state_key="workflow_state",
-            agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "statestore"),
+            agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "workflowstatestore"),
             agents_registry_key="agents_registry",
             broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
             )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .http_client import HttpClient
-from .state_store import StateStore
+from .token_state_store import TokenStateStore
 from models.voice2action import FileRef
 
 from typing import List, Optional, Dict, Any
@@ -23,7 +23,7 @@ class OneDriveService:
     def __init__(self, http: Optional[HttpClient] = None):
         self.http = http or HttpClient()
         self.base_url = "https://graph.microsoft.com/v1.0/me"
-        self.state = StateStore()
+        self.state = TokenStateStore()
         self.logger = logging.getLogger("onedrive")
         self.client_id = os.getenv("MS_GRAPH_CLIENT_ID")
         self.client_secret = os.getenv("MS_GRAPH_CLIENT_SECRET")
