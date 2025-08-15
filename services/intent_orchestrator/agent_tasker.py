@@ -64,6 +64,7 @@ async def main():
                     "Respond concisely and only with structured results."
                 ],
                 tools=[retrieve_transcription],
+                local_state_path="./.dapr_state",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
