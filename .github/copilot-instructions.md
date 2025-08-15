@@ -1,4 +1,3 @@
-Logging convention for all root modules:
 # Dapr Agent Flow – Copilot App Instructions
 
 Pub/Sub and Service Invocation Convention
@@ -6,6 +5,8 @@ Pub/Sub and Service Invocation Convention
 - Do NOT use `requests` or direct HTTP calls to the Dapr API for these operations.
 - `DaprClient` will automatically wrap your data in a CloudEvent envelope for pub/sub.
 - At the top-level entrypoint of every app (orchestrator, agent, worker, etc.), ensure the root logger is configured so all module loggers emit to console. Use this pattern:
+
+Logging convention for all root modules:
 
   import logging
   level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -21,7 +22,6 @@ Pub/Sub and Service Invocation Convention
   root.setLevel(getattr(logging, level, logging.INFO))
 
 This ensures all logs are visible and consistently formatted.
-# Dapr Agent Flow – Copilot App Instructions
 
 Scope
 - Focus on application code: Dapr Workflows orchestrating Dapr Agents (LLM + tools). Minimal runtime notes included for multi-app runs.
@@ -148,8 +148,11 @@ Secrets and configuration
 - Graph/OneDrive env (current implementation uses MSAL client credentials):
   - `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
   - Tokens are persisted in the Dapr state store and refreshed automatically before expiry.
+  - Token cache store (separate state store): set `TOKEN_STATE_STORE_NAME` (default `tokenstatestore`).
+    - Component `components/tokenstate.yml` (default Redis) holds the token cache. Do not mix with workflow/actor state.
 - State store env:
-  - `STATE_STORE_NAME`: Dapr state store name (default `workflowstatestore`).
+  - `STATE_STORE_NAME`: Dapr state store name for workflows/actors (default `workflowstatestore`).
+  - `TOKEN_STATE_STORE_NAME`: Dapr state store name for auth/token cache (default `tokenstatestore`).
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References

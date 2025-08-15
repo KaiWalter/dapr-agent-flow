@@ -49,7 +49,9 @@ The system uses the following components:
 - **OneDrive Integration**: MS Graph API for file operations with automatic token management
 - **OpenAI Integration**: Whisper API for transcription, GPT models for content classification
 - **HTTP Client**: Reusable service for external API calls
-- **State Store**: Centralized state management for workflows and agent registries
+- **State Stores**:
+  - Workflow/Actor state: SQLite via `components/workflowstate.yaml` (actorStateStore=true)
+  - Token cache store: Redis via `components/tokenstate.yml` (name: `tokenstatestore`) used by MSAL for durable token cache
 
 ## Environment Configuration
 
@@ -67,7 +69,7 @@ MS_GRAPH_AUTHORITY="https://login.microsoftonline.com/consumers"  # Default
 
 # OpenAI Configuration  
 OPENAI_API_KEY="your-openai-api-key"
-OPENAI_CLASSIFICATION_MODEL="gpt-4o-mini"    # Default model for classification
+OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
 # Local Storage
 VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
@@ -80,6 +82,9 @@ VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
 STATE_STORE_NAME="workflowstatestore"                # Dapr state store component name
 DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
 DAPR_LOG_LEVEL="info"                       # Logging level
+
+# Token Cache State Store (MSAL)
+TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name for token cache
 
 # Development/Debugging
 DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
@@ -130,7 +135,9 @@ This starts:
 
 ### 4. Initial Authentication
 
-On first run, use the authenticator service to obtain Graph API tokens:
+With MSAL client credentials, no manual token provisioning is required; tokens are acquired and refreshed automatically and stored in the `tokenstatestore`.
+
+Optionally, if using an interactive flow, you can use the authenticator service:
 ```bash
 # Navigate to http://localhost:5000 to complete OAuth flow
 # Tokens are automatically stored in Dapr state store for reuse

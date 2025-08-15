@@ -49,4 +49,3 @@ def publish_llm_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
         "Published to %s/%s for workflow_instance_id=%s", pubsub_name, topic, event_data["workflow_instance_id"]
     )
     return {"published": True}
-    return {"published": True}
