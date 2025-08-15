@@ -8,7 +8,7 @@ from dapr.clients import DaprClient
 logger = logging.getLogger("voice2action")
 
 
-def publish_llm_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
+def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
     """
     Publish a planning/execution request to the LLM Orchestrator via Dapr pub/sub.
     Input:
@@ -21,7 +21,7 @@ def publish_llm_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
     """
     pubsub_name = os.getenv("DAPR_PUBSUB_NAME", "pubsub")
     # Topic the LLM Orchestrator service listens on; default matches orchestrator name
-    topic = os.getenv("DAPR_LLM_ORCHESTRATOR_TOPIC", "LLMOrchestrator")
+    topic = os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "IntentOrchestrator")
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {

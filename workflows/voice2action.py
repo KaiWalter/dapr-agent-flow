@@ -12,7 +12,7 @@ from activities.onedrive_inbox import (
 )
 from activities.transcribe_audio import transcribe_audio_activity
 from activities.classify_transcription import classify_transcription_activity
-from activities.publish_llm_orchestrator import publish_llm_plan_activity
+from activities.publish_intent_orchestrator import publish_intent_plan_activity
 
 logger = logging.getLogger("voice2action")
 
@@ -101,7 +101,7 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
         wf_log(ctx, "voice2action_per_file: classification done id=%s", file.id)
         # Publish to LLM orchestrator for plan & execute
         _ = yield ctx.call_activity(
-            activity=publish_llm_plan_activity,
+            activity=publish_intent_plan_activity,
             input={
                 "correlation_id": file.id,
                 "transcription_text": transcription_result.get("text"),

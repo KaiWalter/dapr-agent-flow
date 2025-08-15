@@ -23,8 +23,7 @@ The Voice2Action workflow implements an end-to-end voice processing pipeline wit
 - Stores transcription in JSON format alongside the original file
 - Preserves file structure and metadata
 
-### FR003: LLM-Based Action Planning and Execution
-- Uses Dapr Agents with LLM Orchestrator to analyze transcriptions
+- Uses Dapr Agents with Intent Orchestrator to analyze transcriptions
 - Determines appropriate actions based on content:
   - **Task Creation**: Creates todo items for detected commands/reminders
   - **Email Fallback**: Sends email notifications for general notes
@@ -40,8 +39,8 @@ The system uses the following components:
 - **Activities**: Implement individual workflow steps (download, transcribe, classify)
 - **State Management**: Persistent storage via Dapr state store for workflow state and file tracking
 
-### LLM Agent Framework
-- **LLM Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
+### Intent Orchestrator Framework
+- **Intent Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
 - **TaskPlanner Agent** (port 5101): Specialized agent for creating and managing tasks
 - **FallbackEmailer Agent** (port 5102): Handles email notifications for unclassified content
 
@@ -83,6 +82,8 @@ STATE_STORE_NAME="workflowstatestore"                # Dapr state store componen
 DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
 DAPR_LOG_LEVEL="info"                       # Logging level
 
+# Intent Orchestrator Topic
+DAPR_INTENT_ORCHESTRATOR_TOPIC="IntentOrchestrator"  # Pub/sub topic for intent orchestrator
 # Token Cache State Store (MSAL)
 TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name for token cache
 
@@ -129,7 +130,7 @@ This starts:
 - **authenticator** (port 5000): Initial Graph authentication helper
 - **workflows**: Workflow polling and orchestration worker  
 - **worker-voice2action** (port 5001): Voice2Action workflow worker with pub/sub subscriber
-- **llm-orchestrator** (port 5100): LLM-based action planning orchestrator
+- **intent-orchestrator** (port 5100): Intent-based action planning orchestrator
 - **agent-taskplanner** (port 5101): Task creation agent
 - **agent-fallback-emailer** (port 5102): Email notification agent
 

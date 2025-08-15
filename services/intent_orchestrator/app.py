@@ -3,7 +3,6 @@ from dapr_agents import LLMOrchestrator
 import os
 import logging
 import asyncio
-import debugpy
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -28,20 +27,20 @@ async def main():
     try:
         orchestrator = (
             LLMOrchestrator(
-                name="LLMOrchestrator",
+                name="IntentOrchestrator",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
                 agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",
                 broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-                max_iterations=int(os.getenv("LLM_ORCH_MAX_ITERATIONS", "3")),
-            ).as_service(port=int(os.getenv("LLM_ORCH_PORT", "5100")))
+                max_iterations=int(os.getenv("INTENT_ORCH_MAX_ITERATIONS", "3")),
+            ).as_service(port=int(os.getenv("INTENT_ORCH_PORT", "5100")))
         )
 
         await orchestrator.start()
     except Exception as e:
-        logging.exception("Error starting LLMOrchestrator service: %s", e)
+        logging.exception("Error starting IntentOrchestrator service: %s", e)
 
 
 if __name__ == "__main__":

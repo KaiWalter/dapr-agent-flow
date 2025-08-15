@@ -37,6 +37,6 @@
 
 - **TR003**: Use Dapr Agent LLM based orchestrator to determine actions.
 	- Run the LLM Orchestrator service on port 5100 and agents on dedicated ports (e.g., 5101, 5102).
-	- Publish classification results to the orchestrator via Dapr pub/sub (component `pubsub`) on topic `LLMOrchestrator`.
+	- Publish classification results to the orchestrator via Dapr pub/sub (component `pubsub`) on topic `IntentOrchestrator`.
 	- Each action identified shall be implemented as a tool available to the orchestrator/agents.
 	- Use <https://github.com/dapr/dapr-agents/tree/main/quickstarts/05-multi-agent-workflows/services> as scaffolding structure.
