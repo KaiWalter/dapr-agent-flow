@@ -1,12 +1,12 @@
 
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator, ValidationError
 
 # Classification models for FR003
 class ClassificationRequest(BaseModel):
     transcription_path: str
-    prompt_path: str
+    prompt_onedrive_path: str
 
 class ClassificationResult(BaseModel):
     result: dict

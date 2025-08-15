@@ -5,10 +5,10 @@ from typing import Optional
 from dapr.clients import DaprClient
 
 
-STATE_STORE_NAME = os.getenv("STATE_STORE_NAME", "workflowstatestore")
+STATE_STORE_NAME = os.getenv("TOKEN_STATE_STORE_NAME", "tokenstatestore")
 
 
-class StateStore:
+class TokenStateStore:
     def __init__(self):
         self.client = DaprClient()
 

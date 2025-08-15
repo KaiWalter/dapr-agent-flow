@@ -1,5 +1,28 @@
 # Dapr Agent Flow – Copilot App Instructions
 
+Pub/Sub and Service Invocation Convention
+- Always use `DaprClient` (from `dapr.clients`) to publish events to pub/sub topics or make service invocations.
+- Do NOT use `requests` or direct HTTP calls to the Dapr API for these operations.
+- `DaprClient` will automatically wrap your data in a CloudEvent envelope for pub/sub.
+- At the top-level entrypoint of every app (orchestrator, agent, worker, etc.), ensure the root logger is configured so all module loggers emit to console. Use this pattern:
+
+Logging convention for all root modules:
+
+  import logging
+  level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
+  root = logging.getLogger()
+  if not root.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+      fmt="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+      datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+  root.setLevel(getattr(logging, level, logging.INFO))
+
+This ensures all logs are visible and consistently formatted.
+
 Scope
 - Focus on application code: Dapr Workflows orchestrating Dapr Agents (LLM + tools). Minimal runtime notes included for multi-app runs.
 
@@ -16,7 +39,29 @@ Solution layout
   - Group capabilities by module: one capability per file (e.g., `services/onedrive.py`, `services/state_store.py`, `services/http_client.py`). Keep these stateless.
 - services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a Flask HTTP subscriber for Dapr pub/sub; `worker.py` publishes schedule events).
 - services/ui/: Minimal UI helpers or launchers (e.g., `services/ui/authenticator.py`). Place any CLI/UI entrypoints here if needed.
-- services/llm_orchestrator/ (optional): If using an LLM-first orchestrator service, host it here (e.g., `app.py`).
+- services/intent_orchestrator/ (optional): If using an intent-based orchestrator service, host it here (e.g., `app.py`). Default ports:
+  - Orchestrator service: 5100
+  - Agents (examples): 5101, 5102
+
+Signal handler workaround for FastAPI-based orchestrators/agents:
+- For any FastAPI-based orchestrator or agent (using dapr-agents or similar), patch the `.stop()` method on the service/agent instance and its class to be an async function that returns None, before calling `.start()`. This prevents shutdown errors from signal handlers expecting a coroutine. Example:
+
+    async def stop_ignore_args(*args, **kwargs):
+        return None
+    agent.stop = stop_ignore_args
+    AgentClass.stop = stop_ignore_args
+    await agent.start()
+
+Apply this pattern to all orchestrator/agent entrypoints that use FastAPI or dapr-agents service mode.
+Debugging convention for all root modules:
+- At the top-level entrypoint of every app (orchestrator, agent, worker, etc.), add the following block to enable remote debugging if the `DEBUGPY_ENABLE` environment variable is set:
+
+  if os.getenv("DEBUGPY_ENABLE", "0") == "1":
+    debugpy.listen(("0.0.0.0", 5678))
+    print("debugpy: Waiting for debugger attach on port 5678...")
+    debugpy.wait_for_client()
+
+This ensures a consistent debugging experience across all services.
 - components/: Dapr components (pubsub, state, bindings). Keep secrets in secret stores, not code.
 
 Scaffolding and app structure rules (repo-specific)
@@ -89,7 +134,7 @@ Scaffolding examples
 
 Local multi-app run (Dapr)
 - Run all apps with a single spec file:
-  - `dapr run -f ./master.yaml` (includes `resourcesPath: ./components`, `logLevel: debug`, and `enableAPILogging: true`).
+  - `dapr run -f ./master.yaml` (includes `resourcesPath: ./components`). Orchestrator on 5100; agents on 5101/5102.
 - Ensure the state store component sets `actorStateStore: true` so workflows/actors persist state.
 - All services/workers/workflows reuse the common `components/` manifests.
 - Pub/Sub: The workflow app exposes a Flask subscriber at `/schedule-voice2action` matching the configured topic (e.g., `voice2action-schedule`).
@@ -103,8 +148,11 @@ Secrets and configuration
 - Graph/OneDrive env (current implementation uses MSAL client credentials):
   - `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
   - Tokens are persisted in the Dapr state store and refreshed automatically before expiry.
+  - Token cache store (separate state store): set `TOKEN_STATE_STORE_NAME` (default `tokenstatestore`).
+    - Component `components/tokenstate.yml` (default Redis) holds the token cache. Do not mix with workflow/actor state.
 - State store env:
-  - `STATE_STORE_NAME`: Dapr state store name (default `statestore`).
+  - `STATE_STORE_NAME`: Dapr state store name for workflows/actors (default `workflowstatestore`).
+  - `TOKEN_STATE_STORE_NAME`: Dapr state store name for auth/token cache (default `tokenstatestore`).
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References

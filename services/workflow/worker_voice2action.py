@@ -11,6 +11,7 @@ from activities.onedrive_inbox import (
     download_onedrive_file,
 )
 from activities.transcribe_audio import transcribe_audio_activity
+from activities.publish_intent_orchestrator import publish_intent_plan_activity
 from activities.classify_transcription import classify_transcription_activity
 
 
@@ -59,6 +60,7 @@ def start_runtime():
     runtime.register_activity(mark_file_pending)
     runtime.register_activity(download_onedrive_file)
     runtime.register_activity(transcribe_audio_activity)
+    runtime.register_activity(publish_intent_plan_activity)
     runtime.register_activity(classify_transcription_activity)
     runtime.start()
 

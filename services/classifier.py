@@ -11,8 +11,16 @@ def classify_transcription(req: ClassificationRequest) -> ClassificationResult:
     with open(req.transcription_path, 'r', encoding='utf-8') as f:
         transcription = json.load(f)
     transcription_text = transcription['text'] if isinstance(transcription, dict) and 'text' in transcription else transcription
-    with open(req.prompt_path, 'r', encoding='utf-8') as f:
-        prompt = f.read()
+    # Download prompt from OneDrive to a temp file
+    from services.onedrive import OneDriveService
+    http = __import__('services.http_client', fromlist=['HttpClient']).HttpClient()
+    svc = OneDriveService(http)
+    import tempfile
+    with tempfile.NamedTemporaryFile('w+', delete=False, encoding='utf-8') as tmpf:
+        svc.download_file_by_path(req.prompt_onedrive_path, tmpf.name)
+        tmpf.flush()
+        tmpf.seek(0)
+        prompt = tmpf.read()
     headers = {
         'Authorization': f'Bearer {OPENAI_API_KEY}',
         'Content-Type': 'application/json'

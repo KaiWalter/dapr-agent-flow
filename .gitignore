@@ -1,5 +1,7 @@
-# Data files
+# Data and State files
 .data/
+.dapr/
+.dapr_state/
 
 # Python
 __pycache__/

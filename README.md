@@ -23,8 +23,7 @@ The Voice2Action workflow implements an end-to-end voice processing pipeline wit
 - Stores transcription in JSON format alongside the original file
 - Preserves file structure and metadata
 
-### FR003: LLM-Based Action Planning and Execution
-- Uses Dapr Agents with LLM Orchestrator to analyze transcriptions
+- Uses Dapr Agents with Intent Orchestrator to analyze transcriptions
 - Determines appropriate actions based on content:
   - **Task Creation**: Creates todo items for detected commands/reminders
   - **Email Fallback**: Sends email notifications for general notes
@@ -40,8 +39,8 @@ The system uses the following components:
 - **Activities**: Implement individual workflow steps (download, transcribe, classify)
 - **State Management**: Persistent storage via Dapr state store for workflow state and file tracking
 
-### LLM Agent Framework
-- **LLM Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
+### Intent Orchestrator Framework
+- **Intent Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
 - **TaskPlanner Agent** (port 5101): Specialized agent for creating and managing tasks
 - **FallbackEmailer Agent** (port 5102): Handles email notifications for unclassified content
 
@@ -49,7 +48,9 @@ The system uses the following components:
 - **OneDrive Integration**: MS Graph API for file operations with automatic token management
 - **OpenAI Integration**: Whisper API for transcription, GPT models for content classification
 - **HTTP Client**: Reusable service for external API calls
-- **State Store**: Centralized state management for workflows and agent registries
+- **State Stores**:
+  - Workflow/Actor state: SQLite via `components/workflowstate.yaml` (actorStateStore=true)
+  - Token cache store: Redis via `components/tokenstate.yml` (name: `tokenstatestore`) used by MSAL for durable token cache
 
 ## Environment Configuration
 
@@ -67,7 +68,7 @@ MS_GRAPH_AUTHORITY="https://login.microsoftonline.com/consumers"  # Default
 
 # OpenAI Configuration  
 OPENAI_API_KEY="your-openai-api-key"
-OPENAI_CLASSIFICATION_MODEL="gpt-4o-mini"    # Default model for classification
+OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
 # Local Storage
 VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
@@ -77,9 +78,14 @@ VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
 
 ```bash
 # Dapr Configuration
-STATE_STORE_NAME="statestore"                # Dapr state store component name
+STATE_STORE_NAME="workflowstatestore"                # Dapr state store component name
 DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
 DAPR_LOG_LEVEL="info"                       # Logging level
+
+# Intent Orchestrator Topic
+DAPR_INTENT_ORCHESTRATOR_TOPIC="IntentOrchestrator"  # Pub/sub topic for intent orchestrator
+# Token Cache State Store (MSAL)
+TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name for token cache
 
 # Development/Debugging
 DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
@@ -124,13 +130,15 @@ This starts:
 - **authenticator** (port 5000): Initial Graph authentication helper
 - **workflows**: Workflow polling and orchestration worker  
 - **worker-voice2action** (port 5001): Voice2Action workflow worker with pub/sub subscriber
-- **llm-orchestrator** (port 5100): LLM-based action planning orchestrator
+- **intent-orchestrator** (port 5100): Intent-based action planning orchestrator
 - **agent-taskplanner** (port 5101): Task creation agent
 - **agent-fallback-emailer** (port 5102): Email notification agent
 
 ### 4. Initial Authentication
 
-On first run, use the authenticator service to obtain Graph API tokens:
+With MSAL client credentials, no manual token provisioning is required; tokens are acquired and refreshed automatically and stored in the `tokenstatestore`.
+
+Optionally, if using an interactive flow, you can use the authenticator service:
 ```bash
 # Navigate to http://localhost:5000 to complete OAuth flow
 # Tokens are automatically stored in Dapr state store for reuse

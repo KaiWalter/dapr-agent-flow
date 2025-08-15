@@ -12,6 +12,7 @@ from activities.onedrive_inbox import (
 )
 from activities.transcribe_audio import transcribe_audio_activity
 from activities.classify_transcription import classify_transcription_activity
+from activities.publish_intent_orchestrator import publish_intent_plan_activity
 
 logger = logging.getLogger("voice2action")
 
@@ -86,25 +87,29 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
             input={"audio_path": audio_path, "mime_type": mime_type},
         )
         wf_log(ctx, "voice2action_per_file: transcription done id=%s", file.id)
-        # Download classification prompt from OneDrive (ONEDRIVE_VOICE_PROMPT)
-        prompt_filename = os.getenv("ONEDRIVE_VOICE_PROMPT", None)
-        if not prompt_filename:
+        # Classify transcription (the activity will download the prompt from OneDrive deterministically)
+        prompt_onedrive_path = os.getenv("ONEDRIVE_VOICE_PROMPT")
+        if not prompt_onedrive_path:
             raise RuntimeError("ONEDRIVE_VOICE_PROMPT env var not set")
-        # Download prompt file to same dir as audio
-        prompt_local_path = os.path.join(os.path.dirname(audio_path), os.path.basename(prompt_filename))
-        from services.onedrive import OneDriveService
-        http = __import__('services.http_client', fromlist=['HttpClient']).HttpClient()
-        svc = OneDriveService(http)
-        svc.download_file_by_path(prompt_filename, prompt_local_path)
-        # Classify transcription
         classification_result = yield ctx.call_activity(
             activity=classify_transcription_activity,
             input={
                 "transcription_path": transcription_result["transcription_path"],
-                "prompt_path": prompt_local_path
+                "prompt_onedrive_path": prompt_onedrive_path,
             },
         )
         wf_log(ctx, "voice2action_per_file: classification done id=%s", file.id)
+        # Publish to LLM orchestrator for plan & execute
+        _ = yield ctx.call_activity(
+            activity=publish_intent_plan_activity,
+            input={
+                "correlation_id": file.id,
+                "transcription_text": transcription_result.get("text"),
+                "transcription_path": transcription_result.get("transcription_path"),
+                "audio_path": audio_path,
+                "file_name": file.name,
+            },
+        )
         return {"ok": True, "transcription": transcription_result, "classification": classification_result}
     except Exception as e:
         wf_log_exception(ctx, "Exception in voice2action_per_file_orchestrator", e)
