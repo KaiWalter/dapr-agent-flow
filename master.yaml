@@ -3,8 +3,8 @@ version: 1
 common:
   resourcesPath: ./components
   logLevel: warn
-  appLogDestination: console
-  daprdLogDestination: console
+  appLogDestination: file
+  daprdLogDestination: file
   enableAPILogging: false
   env:
     ONEDRIVE_VOICE_INBOX: "/Recordings/Inbox"
@@ -54,7 +54,7 @@ apps:
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
 
-  - appID: agent-fallback-emailer
+  - appID: agent-office-automation
     appDirPath: ./
     appPort: 5102
     env:
@@ -64,4 +64,5 @@ apps:
       DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
-    command: ["python", "-m", "services.intent_orchestrator.agent_fallback_emailer"]
+      OFFICE_AUTOMATION_PORT: 5102
+    command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
