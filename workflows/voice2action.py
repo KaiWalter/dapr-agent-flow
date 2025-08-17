@@ -106,6 +106,7 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
                 "correlation_id": file.id,
                 "transcription_text": transcription_result.get("text"),
                 "transcription_path": transcription_result.get("transcription_path"),
+                "classification_path": classification_result.get("classification_path"),
                 "audio_path": audio_path,
                 "file_name": file.name,
             },

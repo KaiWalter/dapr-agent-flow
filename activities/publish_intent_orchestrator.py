@@ -15,6 +15,7 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
       - correlation_id: str
       - transcription_text: str
       - transcription_path: str
+      - classification_path: str
       - audio_path: str
       - file_name: str
       - metadata: dict (optional)
@@ -26,11 +27,8 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
         "task": f"Process voice transcription from {input.get('file_name', 'audio file')}. "
-                f"Transcription: {input.get('transcription_text', '')[:200]}..."
                 f"Additional details: correlation_id={input.get('correlation_id')}, "
-                f"transcription_path={input.get('transcription_path')}, "
-                f"audio_path={input.get('audio_path')}, "
-                f"metadata={input.get('metadata', {})}",
+                f"transcription_path={input.get('classification_path')}, ",
         "workflow_instance_id": input.get("correlation_id"),  # Use correlation_id as workflow instance
     }
 

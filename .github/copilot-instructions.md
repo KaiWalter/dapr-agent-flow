@@ -39,9 +39,13 @@ Solution layout
   - Group capabilities by module: one capability per file (e.g., `services/onedrive.py`, `services/state_store.py`, `services/http_client.py`). Keep these stateless.
 - services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a Flask HTTP subscriber for Dapr pub/sub; `worker.py` publishes schedule events).
 - services/ui/: Minimal UI helpers or launchers (e.g., `services/ui/authenticator.py`). Place any CLI/UI entrypoints here if needed.
+
 - services/intent_orchestrator/ (optional): If using an intent-based orchestrator service, host it here (e.g., `app.py`). Default ports:
   - Orchestrator service: 5100
   - Agents (examples): 5101, 5102
+
+Port configuration for Dapr apps
+- All applications should use the standard Dapr environment variable `DAPR_APP_PORT` for their port configuration. Do not use custom environment variables like `INTENT_ORCH_PORT` or `OFFICE_AUTOMATION_PORT`.
 
 Signal handler workaround for FastAPI-based orchestrators/agents:
 - For any FastAPI-based orchestrator or agent (using dapr-agents or similar), patch the `.stop()` method on the service/agent instance and its class to be an async function that returns None, before calling `.start()`. This prevents shutdown errors from signal handlers expecting a coroutine. Example:

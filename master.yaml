@@ -35,7 +35,6 @@ apps:
     appDirPath: ./
     appPort: 5100
     env:
-      INTENT_ORCH_PORT: 5100
       DAPR_PUBSUB_NAME: pubsub
       DAPR_STATESTORE_NAME: workflowstatestore
       DAPR_AGENTS_REGISTRY_STORE: agentstatestore
@@ -64,5 +63,16 @@ apps:
       DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
-      OFFICE_AUTOMATION_PORT: 5102
     command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
+
+  - appID: monitor
+    appDirPath: ./
+    appPort: 5199
+    appLogDestination: console
+    logLevel: info
+    env:
+      DAPR_PUBSUB_NAME: pubsub
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DEBUGPY_ENABLE: 0
+      PYDEVD_DISABLE_FILE_VALIDATION: 1
+    command: ["python", "-m", "services.ui.monitor"]

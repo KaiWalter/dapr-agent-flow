@@ -36,7 +36,7 @@ async def main():
                 agents_registry_key="agents_registry",
                 broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
                 max_iterations=int(os.getenv("INTENT_ORCH_MAX_ITERATIONS", "3")),
-            ).as_service(port=int(os.getenv("INTENT_ORCH_PORT", "5100")))
+            ).as_service(port=int(os.getenv("DAPR_APP_PORT", "5100")))
         )
 
         await orchestrator.start()

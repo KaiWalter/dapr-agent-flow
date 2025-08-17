@@ -23,6 +23,13 @@
 	- As a fallback action, if no other action is detected, create an action to send an email - leave the implementation empty for the moment.
 	- relevant: `TR002`
 
+- **FR004**: Monitor LLM based workflow
+	- As a user I want to have a separate UI application that listens to and displays the conversation flow (intent workflow chat history) so that I can observe the decision and processing logic to further improve the classification prompt and the agent instructions.
+	- Call it `monitor`.
+	- Monitor shall listen to the same topic (`beacon_channel`) as the agents involved in the intent workflow.
+	- For a start, logging the conversation is sufficient. No web UI is required.
+	- relevant: `TR003`
+
 ## Technical
 
 - **TR001**: MS Graph authentication and token management

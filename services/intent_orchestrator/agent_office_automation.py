@@ -129,7 +129,7 @@ async def main():
                 broadcast_topic_name=os.getenv(
                     "DAPR_BROADCAST_TOPIC", "beacon_channel")
             )
-            .as_service(port=int(os.getenv("OFFICE_AUTOMATION_PORT", os.getenv("APP_PORT", "5102"))))
+            .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))
         )
         await agent.start()
     except Exception as e:
