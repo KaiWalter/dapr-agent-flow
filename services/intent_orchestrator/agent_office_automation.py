@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dapr_agents import DurableAgent, tool
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 import asyncio
 import logging
 import os
 from services.outlook import OutlookService
 from services import task_webhook
+from models.agents import SendEmailArgs, CreateTaskArgs
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -21,12 +21,6 @@ if not root.handlers:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 root.setLevel(getattr(logging, level, logging.INFO))
-
-
-class SendEmailArgs(BaseModel):
-    """Schema for the send_email tool."""
-    subject: str = Field(description="Subject of the email - name of the transcription file without file extensions")
-    body: str = Field(description="The complete transcription text or a summary of the user's intent")
 
 
 @tool(args_model=SendEmailArgs)
@@ -52,33 +46,6 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
     except Exception as e:
         logging.getLogger("OfficeAutomation").exception("send_email failed: %s", e)
         return f"Email failed: {e}"
-
-
-class CreateTaskArgs(BaseModel):
-    """Schema for the create_task tool."""
-    title: str = Field(description="Title of the task - a summarization of the user's intent")
-    due_date: Optional[str] = Field(
-        default=None,
-        description="Due date as ISO 8601 datetime string (e.g., 2025-08-16T14:30:00Z or 2025-08-16T14:30:00+00:00)",
-    )
-    reminder: Optional[str] = Field(
-        default=None,
-        description="Reminder ISO 8601 datetime string (e.g., 2025-08-16T14:30:00Z or 2025-08-16T14:30:00+00:00)",
-    )
-    notes: str = Field(default=None, description="Notes on the task - the complete transcription text or a summary of the user's intent")
-
-    @field_validator("due_date", "reminder")
-    @classmethod
-    def _validate_iso8601(cls, v: Optional[str]):
-        if v is None:
-            return v
-        import re
-        # Basic ISO 8601 datetime with optional fractional seconds and timezone (Z or ±HH:MM)
-        pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:\d{2})$"
-        if not re.match(pattern, v):
-            raise ValueError(
-                "must be an ISO 8601 datetime string, e.g., 2025-08-16T14:30:00Z")
-        return v
 
 
 @tool(args_model=CreateTaskArgs)

@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from typing import Optional
-from pydantic import BaseModel
+from models.agents import RetrieveTranscriptionArgs
 
 
 # Root logger setup
@@ -21,16 +21,6 @@ if not root.handlers:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 root.setLevel(getattr(logging, level, logging.INFO))
-
-
-class RetrieveTranscriptionArgs(BaseModel):
-    """Schema for retrieving transcription content.
-
-    Provide either a 'transcription_path' to read JSON from disk or a raw
-    'transcription_text' directly. If both are provided, the file path wins.
-    """
-    transcription_path: Optional[str] = None
-    transcription_text: Optional[str] = None
 
 
 @tool(args_model=RetrieveTranscriptionArgs)
@@ -69,24 +59,24 @@ def retrieve_transcription(
 # Timezone tools: single source of truth for process timezone
 from datetime import datetime, timezone
 try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    from pytz import timezone as ZoneInfo
-    import tzlocal
+    from zoneinfo import ZoneInfo  # Python 3.9+
+except Exception:
+    ZoneInfo = None  # type: ignore
 
 def _get_office_timezone():
     tz_name = os.getenv("OFFICE_TIMEZONE")
-    if tz_name:
+    if tz_name and ZoneInfo is not None:
         try:
             return ZoneInfo(tz_name)
         except Exception:
             pass
-    # fallback to system timezone
+    # fallback to system timezone via tzlocal; last resort UTC
     try:
         import tzlocal
         return tzlocal.get_localzone()
     except Exception:
-        return ZoneInfo("UTC")
+        from datetime import timezone as _timezone
+        return _timezone.utc
 
 @tool()
 def get_office_timezone() -> str:

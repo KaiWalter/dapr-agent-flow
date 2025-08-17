@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "include": [
+    "models",
+    "services/intent_orchestrator",
+    "workflows",
+    "activities",
+    "services"
+  ],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
+}
