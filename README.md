@@ -77,7 +77,7 @@ OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 VOICE_DOWNLOAD_DIR="./.work/voice"       # Local directory for downloads
 
 # Email
-OUTLOOK_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
+SEND_MAIL_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
 ```
 
 ### Optional Environment Variables

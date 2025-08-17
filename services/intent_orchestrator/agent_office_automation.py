@@ -31,9 +31,9 @@ class SendEmailArgs(BaseModel):
 @tool(args_model=SendEmailArgs)
 def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str:
     """Send an email to the configured recipient using Outlook (MS Graph)."""
-    recipient = os.getenv("OUTLOOK_RECIPIENT")
+    recipient = os.getenv("SEND_MAIL_RECIPIENT")
     if not recipient:
-        return "Email failed: OUTLOOK_RECIPIENT is not configured"
+        return "Email failed: SEND_MAIL_RECIPIENT is not configured"
 
     subject_safe = subject.strip() if subject else "No subject"
     text = body or "(no email body provided)"

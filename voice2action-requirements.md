@@ -44,9 +44,24 @@
 
 - **FR007**: Sending emails
 	- Send emails using Outlook (personal).
-	- The recipent is always the same address. Take it from the environment variable `OUTLOOK_RECIPIENT`.
+	- The recipent is always the same address. Take it from the environment variable `SEND_MAIL_RECIPIENT`.
 	- This logic is implemented in the Office Automation agent.
 	- relevant: `TR001`
+
+- **FR008**: Create task
+	- Tasks need to be created in a space outside personal MS Graph/Outlook/OneDrive domain.
+	- Hence to create a task a HTTP POST webhook is to be called.
+	- This logic is implemented in the Office Automation agent.
+	- Take the target URL from the environment variable `CREATE_TASK_WEBHOOK_URL`.
+	- POST body needs to have exactly below structure with optional due and reminder:
+
+```json
+{
+	"title": "some title",
+	"due": "optional - due date in ISO8601 format",
+	"reminder": "optional - reminder in ISO8601 format"
+}
+```
 
 ## Technical
 
