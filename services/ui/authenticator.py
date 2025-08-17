@@ -11,7 +11,7 @@ CLIENT_ID = os.getenv("MS_GRAPH_CLIENT_ID")
 CLIENT_SECRET = os.getenv("MS_GRAPH_CLIENT_SECRET")
 AUTHORITY = os.getenv("MS_GRAPH_AUTHORITY", "https://login.microsoftonline.com/consumers")
 REDIRECT_URI = "http://localhost:5000/signin-oidc"
-SCOPES = ["User.Read", "Files.ReadWrite"]
+SCOPES = ["User.Read", "Files.ReadWrite", "Mail.Send"]
 TOKEN_STATE_KEY = "global_ms_graph_token_cache"  # persist MSAL cache
 
 app = Flask(__name__)

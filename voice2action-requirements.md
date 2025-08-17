@@ -38,8 +38,14 @@
 	- All other agents and workflow steps must use these Tasker agent tools to obtain timezone information for scheduling and time-related operations, rather than reading the environment variable directly.
 
 - **FR006**: After processing archive recording
-	- When transcription is concluded move the recording file one OneDrive to a folder specified by environment variable `ONEDRIVE_VOICE_ARCHIVE` in the format `/folder/sub-folder`.
-	- This step can happen in parall or while intent orchestration is in progress.
+	- When transcription is concluded move the recording file on OneDrive to a folder specified by environment variable `ONEDRIVE_VOICE_ARCHIVE` in the format `/folder/sub-folder`.
+	- If a file with the same name already exists in the target folder, delete that one first and then conduct the move operation.
+	- relevant: `TR001`
+
+- **FR007**: Sending emails
+	- Send emails using Outlook (personal).
+	- The recipent is always the same address. Take it from the environment variable `OUTLOOK_RECIPIENT`.
+	- This logic is implemented in the Office Automation agent.
 	- relevant: `TR001`
 
 ## Technical

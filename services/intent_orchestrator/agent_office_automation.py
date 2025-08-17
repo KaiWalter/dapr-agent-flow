@@ -6,6 +6,7 @@ from typing import Optional
 import asyncio
 import logging
 import os
+from services.outlook import OutlookService
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -29,23 +30,27 @@ class SendEmailArgs(BaseModel):
 
 @tool(args_model=SendEmailArgs)
 def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str:
-    """Send an email to the user."""
+    """Send an email to the configured recipient using Outlook (MS Graph)."""
+    recipient = os.getenv("OUTLOOK_RECIPIENT")
+    if not recipient:
+        return "Email failed: OUTLOOK_RECIPIENT is not configured"
+
+    subject_safe = subject.strip() if subject else "No subject"
     text = body or "(no email body provided)"
-    header = "".join([
-        f"<div><b>Subject:</b> {subject}</div>" if subject else "",
-    ])
     html = f"""
     <html>
     <body>
-        {header}
         <p>{text}</p>
     </body>
     </html>
     """
-    os.makedirs(".work", exist_ok=True)
-    with open(".work/email.html", "w", encoding="utf-8") as f:
-        f.write(html)
-    return "Email sent"
+    try:
+        svc = OutlookService()
+        svc.send_email(to=recipient, subject=subject_safe, body_html=html, save_to_sent=True)
+        return "Email sent"
+    except Exception as e:
+        logging.getLogger("OfficeAutomation").exception("send_email failed: %s", e)
+        return f"Email failed: {e}"
 
 
 class CreateTaskArgs(BaseModel):

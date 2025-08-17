@@ -19,6 +19,17 @@ def move_file_to_archive(file_id: str, file_name: Optional[str] = None, inbox_fo
     dest_id = dest_meta.get("id")
     if not dest_id:
         raise RuntimeError(f"Could not resolve archive folder id for path '{archive_folder}'")
+    # If a file with the same name exists in destination, delete it first (FR006)
+    if file_name:
+        try:
+            existing = service.find_child_by_name(parent_id=dest_id, name=file_name)
+            if existing and existing.get("id"):
+                del_url = f"{service.base_url}/drive/items/{existing['id']}"
+                resp_del = service.http.delete(del_url, headers=service._headers())
+                # 204 No Content expected
+                resp_del.raise_for_status()
+        except Exception as e:
+            service.logger.warning("Pre-delete existing archive file failed (continuing): %s", e)
 
     patch_url = f"{service.base_url}/drive/items/{file_id}"
     json_body: Dict[str, Any] = {
@@ -174,3 +185,18 @@ class OneDriveService:
         resp = self.http.get(url, headers=self._headers())
         resp.raise_for_status()
         return resp.json()
+
+    def list_children_by_id(self, parent_id: str) -> Dict[str, Any]:
+        """List children of a drive item by id (returns raw JSON with value[])."""
+        url = f"{self.base_url}/drive/items/{parent_id}/children"
+        resp = self.http.get(url, headers=self._headers())
+        resp.raise_for_status()
+        return resp.json()
+
+    def find_child_by_name(self, parent_id: str, name: str) -> Optional[Dict[str, Any]]:
+        """Find a direct child item by exact name under a parent id."""
+        data = self.list_children_by_id(parent_id)
+        for it in data.get("value", []):
+            if it.get("name") == name:
+                return it
+        return None

@@ -31,5 +31,8 @@ class HttpClient:
     def patch(self, url: str, json: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
         return self._client.patch(url, json=json, headers=headers)
 
+    def delete(self, url: str, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
+        return self._client.delete(url, headers=headers)
+
     def close(self):
         self._client.close()

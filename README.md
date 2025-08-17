@@ -75,6 +75,9 @@ OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
 # Local Storage
 VOICE_DOWNLOAD_DIR="./.work/voice"       # Local directory for downloads
+
+# Email
+OUTLOOK_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
 ```
 
 ### Optional Environment Variables
@@ -146,13 +149,15 @@ This starts:
 
 ### 4. Initial Authentication
 
-With MSAL client credentials, no manual token provisioning is required; tokens are acquired and refreshed automatically and stored in the `tokenstatestore`.
+With delegated MSAL tokens, no manual token provisioning is required after the first interactive consent; tokens are refreshed automatically and stored durably in the `tokenstatestore`.
 
 Optionally, if using an interactive flow, you can use the authenticator service:
 ```bash
 # Navigate to http://localhost:5000 to complete OAuth flow
 # Tokens are automatically stored in Dapr state store for reuse
 ```
+
+Note: The authenticator requests scopes: User.Read, Files.ReadWrite, and Mail.Send. If you previously authenticated without Mail.Send, re-run the authenticator once to grant the additional scope before sending email (FR007).
 
 ## Monitoring and Logs
 
