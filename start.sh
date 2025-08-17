@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # folders to clean
-folders=(.dapr/logs .dapr_state downloads/voice downloads)
+folders=(.dapr/logs .dapr_state .work/voice .work)
 for folder in "${folders[@]}"; do
 	files=("$folder"/*)
 	found_file=false

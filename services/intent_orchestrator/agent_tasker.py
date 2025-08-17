@@ -65,6 +65,23 @@ def retrieve_transcription(
         return transcription_text
     return ""
 
+@tool()
+def determine_timezone() -> str:
+    """Determine the local timezone of the server."""
+    import time
+    return time.tzname[0] if time.tzname else "UTC"
+
+@tool()
+def determine_timezone_offset() -> str:
+    """Determine the local timezone offset in ISO 8601 format."""
+    import datetime
+    offset = datetime.datetime.now(datetime.timezone.utc).astimezone().utcoffset()
+    if offset is None:
+        return "Z"
+    sign = "+" if offset.total_seconds() >= 0 else "-"
+    hours, remainder = divmod(abs(int(offset.total_seconds())), 3600)
+    minutes, _ = divmod(remainder, 60)
+    return f"{sign}{hours:02}:{minutes:02}"
 
 async def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
@@ -78,16 +95,16 @@ async def main():
             DurableAgent(
                 name="TaskPlanner",
                 role="Planner",
-                goal="Handle and provide all kind of input information e.g. voice recording transcript and provide additional reference information which are helpful to the process.",
+                goal= "Handle and provide all kind of input information e.g. voice recording transcript and provide additional reference information which are helpful to the process.",
                 instructions=[
-                    "Start retrieving transcription content which states the users intent.",
-                    "Use tool read_transcription to get the transcription text.",
-                    "Focus on extracting users intent, actionable items, due dates or reminders.",
-                    "You provide utility to the process and none of your actions are to be considered to conclude the process.",
+                    "Provide utility to the process and none of your actions are to be considered to conclude the process.",
+                    "Add timezone and timezone offset information to the process dates are handled e.g. due dates, reminders.",
                     "Available tools and arguments:",
                     "- read_transcription(transcription_path: string)",
+                    "- determine_timezone()",
+                    "- determine_timezone_offset()",
                 ],
-                tools=[retrieve_transcription],
+                tools=[retrieve_transcription, determine_timezone, determine_timezone_offset],
                 local_state_path="./.dapr_state",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv(
@@ -99,7 +116,7 @@ async def main():
                 broadcast_topic_name=os.getenv(
                     "DAPR_BROADCAST_TOPIC", "beacon_channel")
             )
-            .as_service(port=int(os.getenv("TASKPLANNER_PORT", os.getenv("APP_PORT", "5101"))))
+            .as_service(port=int(os.getenv("DAPR_APP_PORT", "5101")))
         )
 
         await agent.start()

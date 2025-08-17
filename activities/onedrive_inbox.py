@@ -16,7 +16,7 @@ logger.setLevel(getattr(logging, level, logging.INFO))
 
 PENDING_PREFIX = "voice_inbox_pending:"  # to avoid duplicates during polling
 DOWNLOADED_PREFIX = "voice_inbox_downloaded:"  # idempotency tracking
-DOWNLOAD_DIR = os.getenv("VOICE_DOWNLOAD_DIR", "./downloads/voice")
+DOWNLOAD_DIR = os.getenv("VOICE_DOWNLOAD_DIR", "./.work/voice")
 
 
 def list_onedrive_inbox(ctx, req: dict) -> dict:

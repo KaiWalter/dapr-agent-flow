@@ -148,7 +148,7 @@ Secrets and configuration
 - Voice2Action env:
   - `ONEDRIVE_VOICE_INBOX`: OneDrive folder to poll.
   - `ONEDRIVE_VOICE_POLL_INTERVAL`: Poll cadence in seconds (used by the publisher to emit schedule events).
-  - `VOICE_DOWNLOAD_DIR`: Local folder to save downloads (default `./downloads/voice`).
+  - `VOICE_DOWNLOAD_DIR`: Local folder to save downloads (default `./.work/voice`).
 - Graph/OneDrive env (current implementation uses MSAL client credentials):
   - `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
   - Tokens are persisted in the Dapr state store and refreshed automatically before expiry.

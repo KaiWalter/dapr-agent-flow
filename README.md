@@ -71,7 +71,7 @@ OPENAI_API_KEY="your-openai-api-key"
 OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
 # Local Storage
-VOICE_DOWNLOAD_DIR="./downloads/voice"       # Local directory for downloads
+VOICE_DOWNLOAD_DIR="./.work/voice"       # Local directory for downloads
 ```
 
 ### Optional Environment Variables
@@ -101,7 +101,7 @@ PYDEVD_DISABLE_FILE_VALIDATION="1"          # PyCharm debugging optimization
 pip install -r requirements.txt
 
 # Create necessary directories
-mkdir -p ./downloads/voice
+mkdir -p ./.work/voice
 ```
 
 ### 2. Configure Environment
@@ -148,7 +148,7 @@ Optionally, if using an interactive flow, you can use the authenticator service:
 
 - **Workflow State**: Check Dapr state store for workflow execution status
 - **Agent States**: Individual agents maintain state in `{AgentName}_state.json` files
-- **File Processing**: Monitor `./downloads/voice/` for processed recordings and transcriptions
+- **File Processing**: Monitor `./.work/voice/` for processed recordings and transcriptions
 - **Logs**: All services output structured logs with correlation IDs for tracing
 
 ## Development

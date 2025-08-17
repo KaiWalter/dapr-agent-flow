@@ -23,7 +23,7 @@ root.setLevel(getattr(logging, level, logging.INFO))
 
 class SendEmailArgs(BaseModel):
     """Schema for the send_email tool."""
-    subject: str = Field(description="Subject of the email - a summarization of the user's intent")
+    subject: str = Field(description="Subject of the email - name of the transcription file without file extensions")
     body: str = Field(description="The complete transcription text or a summary of the user's intent")
 
 
@@ -42,8 +42,8 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
     </body>
     </html>
     """
-    os.makedirs("downloads", exist_ok=True)
-    with open("downloads/email.html", "w", encoding="utf-8") as f:
+    os.makedirs(".work", exist_ok=True)
+    with open(".work/email.html", "w", encoding="utf-8") as f:
         f.write(html)
     return "Email sent"
 
@@ -88,8 +88,8 @@ def create_task(title: str, due_date: Optional[str] = None, reminder: Optional[s
     </body>
     </html>
     """
-    os.makedirs("downloads", exist_ok=True)
-    with open("downloads/task.html", "w", encoding="utf-8") as f:
+    os.makedirs(".work", exist_ok=True)
+    with open(".work/task.html", "w", encoding="utf-8") as f:
         f.write(html)
     return "Task created"
 
@@ -112,10 +112,9 @@ async def main():
                     "Available tools and arguments:",
                     "- create_task(title: string, due_date?: ISO8601 date time string, reminder?: ISO8601 date time string, notes?: string)",
                     "- send_email(subject?: string, body?: string)",
-                    "Only if one of these tools is used, the mission is considered concluded.",
-                    "Decision policy: Prefer create_task when the user mentions todos/tasks/reminders; otherwise fallback to send_email.",
-                    "Execution policy for send_email: call the tool immediately with best-effort arguments; derive a concise subject from the request (default 'Note' if unclear) and ALWAYS provide a non-empty body (use the user's message or a short summary). The 'to' field may be omitted if unknown; do not block on it.",
-                    "Execution policy for create_task: always provide a clear, action-oriented title; include due_date and notes when available.",
+                    "All date time string information needs to be converted into ISO8601 format. Consider the following:",
+                    "- when no time is specified, use the start of the business day (06:00:00) as default",
+                    "- add appropriate timezone offset to the date time string, e.g., Z or +00:00",
                 ],
                 tools=[send_email, create_task],
                 local_state_path="./.dapr_state",

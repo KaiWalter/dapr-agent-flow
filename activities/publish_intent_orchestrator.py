@@ -26,10 +26,12 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
-        "task": f"Process voice transcription from {input.get('file_name', 'audio file')}. "
-                f"Additional details: correlation_id={input.get('correlation_id')}, "
-                f"transcription_path={input.get('classification_path')}, ",
-        "workflow_instance_id": input.get("correlation_id"),  # Use correlation_id as workflow instance
+        "task": f"Process pre-evaluated voice transcription from {input.get('transcription_path')}. "
+                f"From the first sentence, extract the user's intent and plan the next steps. "
+                f"Treat the remaining transcription text just as a note with no further intent to consider. "
+                f"Explicit user intent can be: create a task. "
+                f"If there is no intent, just send an email with the whole transcript.",
+        "workflow_instance_id": input.get("correlation_id"),
     }
 
     with DaprClient() as d:
