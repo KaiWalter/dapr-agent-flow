@@ -28,5 +28,8 @@ class HttpClient:
                 for chunk in r.iter_bytes():
                     f.write(chunk)
 
+    def patch(self, url: str, json: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
+        return self._client.patch(url, json=json, headers=headers)
+
     def close(self):
         self._client.close()

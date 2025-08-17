@@ -8,7 +8,7 @@ common:
   enableAPILogging: false
   env:
     ONEDRIVE_VOICE_INBOX: "/Recordings/Inbox"
-    ONEDRIVE_VOICE_PROMPT: "/Recordings/Classification_Prompt.txt"
+    ONEDRIVE_VOICE_ARCHIVE: "/Recordings/Archive"
     OFFICE_TIMEZONE: "Europe/Berlin"
     DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 

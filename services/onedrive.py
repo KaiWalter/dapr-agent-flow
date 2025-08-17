@@ -1,7 +1,34 @@
 from __future__ import annotations
+
 from .http_client import HttpClient
 from .token_state_store import TokenStateStore
 from models.voice2action import FileRef
+
+from typing import Optional
+
+def move_file_to_archive(file_id: str, file_name: Optional[str] = None, inbox_folder: Optional[str] = None, archive_folder: Optional[str] = None):
+    """
+    Move a file to the archive folder on OneDrive using PATCH /me/drive/items/{item-id}
+    with parentReference.id as per Graph documentation.
+    """
+    service = OneDriveService()
+    if not archive_folder:
+        raise ValueError("archive_folder is required to move file in OneDrive.")
+    # Resolve destination folder ID from path
+    dest_meta = service.get_item_by_path(archive_folder)
+    dest_id = dest_meta.get("id")
+    if not dest_id:
+        raise RuntimeError(f"Could not resolve archive folder id for path '{archive_folder}'")
+
+    patch_url = f"{service.base_url}/drive/items/{file_id}"
+    json_body: Dict[str, Any] = {
+        "parentReference": {"id": dest_id}
+    }
+    if file_name:
+        json_body["name"] = file_name
+    resp = service.http.patch(patch_url, headers=service._headers(), json=json_body)
+    resp.raise_for_status()
+    return resp.json()
 
 from typing import List, Optional, Dict, Any
 import json
@@ -135,3 +162,15 @@ class OneDriveService:
             return dl
         # Fallback: content endpoint
         return f"{url}/content"
+
+    def get_item_by_path(self, item_path: str) -> Dict[str, Any]:
+        """
+        Resolve an item (file or folder) by absolute or relative OneDrive path and return its metadata.
+        Example: "/Recordings/Archive" -> { id: "...", name: "Archive", ... }
+        """
+        # Normalize: strip leading slash to match /drive/root:/{path} syntax
+        norm = item_path.lstrip('/')
+        url = f"{self.base_url}/drive/root:/{norm}"
+        resp = self.http.get(url, headers=self._headers())
+        resp.raise_for_status()
+        return resp.json()

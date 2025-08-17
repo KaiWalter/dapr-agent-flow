@@ -10,9 +10,10 @@ from activities.onedrive_inbox import (
     mark_file_pending,
     download_onedrive_file,
 )
+
 from activities.transcribe_audio import transcribe_audio_activity
-from activities.classify_transcription import classify_transcription_activity
 from activities.publish_intent_orchestrator import publish_intent_plan_activity
+from activities.archive_recording import archive_recording_activity
 
 logger = logging.getLogger("voice2action")
 
@@ -87,31 +88,29 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
             input={"audio_path": audio_path, "mime_type": mime_type},
         )
         wf_log(ctx, "voice2action_per_file: transcription done id=%s", file.id)
-        # Classify transcription (the activity will download the prompt from OneDrive deterministically)
-        prompt_onedrive_path = os.getenv("ONEDRIVE_VOICE_PROMPT")
-        if not prompt_onedrive_path:
-            raise RuntimeError("ONEDRIVE_VOICE_PROMPT env var not set")
-        classification_result = yield ctx.call_activity(
-            activity=classify_transcription_activity,
-            input={
-                "transcription_path": transcription_result["transcription_path"],
-                "prompt_onedrive_path": prompt_onedrive_path,
-            },
-        )
-        wf_log(ctx, "voice2action_per_file: classification done id=%s", file.id)
-        # Publish to LLM orchestrator for plan & execute
+        # Archive the file in parallel with intent orchestration
+        archive_input = {
+            "file_id": file.id,
+            "file_name": file.name,
+            "inbox_folder": os.getenv("ONEDRIVE_VOICE_INBOX"),
+            # archive_folder will be picked up from env in the activity if not set
+        }
+        # Publish intent plan first (fire-and-forget via pub/sub), then archive sequentially
         _ = yield ctx.call_activity(
             activity=publish_intent_plan_activity,
             input={
                 "correlation_id": file.id,
                 "transcription_text": transcription_result.get("text"),
                 "transcription_path": transcription_result.get("transcription_path"),
-                "classification_path": classification_result.get("classification_path"),
                 "audio_path": audio_path,
                 "file_name": file.name,
             },
         )
-        return {"ok": True, "transcription": transcription_result, "classification": classification_result}
+        archive_result = yield ctx.call_activity(
+            activity=archive_recording_activity,
+            input=archive_input,
+        )
+        return {"ok": True, "transcription": transcription_result, "archive": archive_result}
     except Exception as e:
         wf_log_exception(ctx, "Exception in voice2action_per_file_orchestrator", e)
         raise

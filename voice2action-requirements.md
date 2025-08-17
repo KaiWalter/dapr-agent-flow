@@ -13,12 +13,14 @@
     - only accept `audio/x-wav` and `audio/mpeg` file types
 	- relevant: `TR001`
 
+
 - **FR002**: Transcribe downloaded voice recording
-    - As the next step transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`
+	- Transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`.
+	- After transcription, invoke the intent orchestration process to handle classification and action planning.
 	- relevant: `TR002`
 
 - **FR003**: Plan and Execute Actions
-	- As the next step use the transcription to plan and execute actions in an LLM agentic, LLM based flow [see `TR003`].
+	- The intent orchestration process uses the transcription to plan and execute actions in an LLM agentic, LLM based flow [see `TR003`].
 	- Create an action to create a task in a to do list - leave the implementation empty for the moment - when the LLM detects a command or instruction to create a task or set a reminder.
 	- As a fallback action, if no other action is detected, create an action to send an email - leave the implementation empty for the moment.
 	- relevant: `TR002`
@@ -30,11 +32,15 @@
 	- For a start, logging the conversation is sufficient. No web UI is required.
 	- relevant: `TR003`
 
-
 - **FR005**: Time zone (Single Source of Truth)
 	- The system must provide a single source of truth for the target timezone, determined by the environment variable `OFFICE_TIMEZONE` (e.g., `Europe/Berlin`, `US/Central`). If not set, the system timezone is used.
 	- This logic is implemented in the Tasker agent, which exposes tools to retrieve the effective timezone and offset.
 	- All other agents and workflow steps must use these Tasker agent tools to obtain timezone information for scheduling and time-related operations, rather than reading the environment variable directly.
+
+- **FR006**: After processing archive recording
+	- When transcription is concluded move the recording file one OneDrive to a folder specified by environment variable `ONEDRIVE_VOICE_ARCHIVE` in the format `/folder/sub-folder`.
+	- This step can happen in parall or while intent orchestration is in progress.
+	- relevant: `TR001`
 
 ## Technical
 

@@ -58,9 +58,11 @@ The system uses the following components:
 ### Required Environment Variables
 
 ```bash
+
 # OneDrive Configuration
 ONEDRIVE_VOICE_INBOX="/folder/sub-folder"    # OneDrive folder path to monitor
 ONEDRIVE_VOICE_POLL_INTERVAL=30              # Polling interval in seconds (min: 5)
+ONEDRIVE_VOICE_ARCHIVE="/folder/archive-folder"  # OneDrive folder path to archive processed recordings (required)
 
 # MS Graph Authentication (MSAL Client Credentials)
 MS_GRAPH_CLIENT_ID="your-client-id"
