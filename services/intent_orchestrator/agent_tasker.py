@@ -65,18 +65,48 @@ def retrieve_transcription(
         return transcription_text
     return ""
 
-@tool()
-def determine_timezone() -> str:
-    """Determine the local timezone of the server."""
-    import time
-    return time.tzname[0] if time.tzname else "UTC"
+
+# Timezone tools: single source of truth for process timezone
+from datetime import datetime, timezone
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from pytz import timezone as ZoneInfo
+    import tzlocal
+
+def _get_office_timezone():
+    tz_name = os.getenv("OFFICE_TIMEZONE")
+    if tz_name:
+        try:
+            return ZoneInfo(tz_name)
+        except Exception:
+            pass
+    # fallback to system timezone
+    try:
+        import tzlocal
+        return tzlocal.get_localzone()
+    except Exception:
+        return ZoneInfo("UTC")
 
 @tool()
-def determine_timezone_offset() -> str:
-    """Determine the local timezone offset in ISO 8601 format."""
-    import datetime
-    offset = datetime.datetime.now(datetime.timezone.utc).astimezone().utcoffset()
-    if offset is None:
+def get_office_timezone() -> str:
+    """Return the effective timezone name for the process (from OFFICE_TIMEZONE or system default)."""
+    tz = os.getenv("OFFICE_TIMEZONE")
+    if tz:
+        return tz
+    try:
+        import tzlocal
+        return str(tzlocal.get_localzone())
+    except Exception:
+        return "UTC"
+
+@tool()
+def get_office_timezone_offset() -> str:
+    """Return the current offset for the effective timezone in ISO 8601 format (e.g., +02:00, Z)."""
+    tz = _get_office_timezone()
+    now = datetime.now(tz)
+    offset = now.utcoffset()
+    if offset is None or offset.total_seconds() == 0:
         return "Z"
     sign = "+" if offset.total_seconds() >= 0 else "-"
     hours, remainder = divmod(abs(int(offset.total_seconds())), 3600)
@@ -101,10 +131,10 @@ async def main():
                     "Add timezone and timezone offset information to the process dates are handled e.g. due dates, reminders.",
                     "Available tools and arguments:",
                     "- read_transcription(transcription_path: string)",
-                    "- determine_timezone()",
-                    "- determine_timezone_offset()",
+                    "- get_office_timezone()",
+                    "- get_office_timezone_offset()",
                 ],
-                tools=[retrieve_transcription, determine_timezone, determine_timezone_offset],
+                tools=[retrieve_transcription, get_office_timezone, get_office_timezone_offset],
                 local_state_path="./.dapr_state",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv(

@@ -1,3 +1,4 @@
+
 # Dapr Agent Flow
 
 This repository explores personal productivity flows using the **Dapr Agents** framework, implementing voice-to-action workflows that automatically process voice recordings and execute appropriate actions.
@@ -91,6 +92,13 @@ TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name f
 DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
 PYDEVD_DISABLE_FILE_VALIDATION="1"          # PyCharm debugging optimization
 ```
+
+`OFFICE_TIMEZONE` (optional):
+
+- Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).
+- If not set, the system timezone will be used as the default.
+- The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents.
+
 
 ## Quick Start
 

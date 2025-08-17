@@ -30,6 +30,12 @@
 	- For a start, logging the conversation is sufficient. No web UI is required.
 	- relevant: `TR003`
 
+
+- **FR005**: Time zone (Single Source of Truth)
+	- The system must provide a single source of truth for the target timezone, determined by the environment variable `OFFICE_TIMEZONE` (e.g., `Europe/Berlin`, `US/Central`). If not set, the system timezone is used.
+	- This logic is implemented in the Tasker agent, which exposes tools to retrieve the effective timezone and offset.
+	- All other agents and workflow steps must use these Tasker agent tools to obtain timezone information for scheduling and time-related operations, rather than reading the environment variable directly.
+
 ## Technical
 
 - **TR001**: MS Graph authentication and token management

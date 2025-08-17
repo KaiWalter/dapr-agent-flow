@@ -7,3 +7,4 @@ msal>=1.23.0
 pydantic>=2.6.0
 python-dotenv>=1.0.1
 requests>=2.32.0
+tzlocal>=5.0.0
