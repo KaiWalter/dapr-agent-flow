@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 from services.outlook import OutlookService
+from services import task_webhook
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -82,21 +83,13 @@ class CreateTaskArgs(BaseModel):
 
 @tool(args_model=CreateTaskArgs)
 def create_task(title: str, due_date: Optional[str] = None, reminder: Optional[str] = None, notes: Optional[str] = None) -> str:
-    """Create a task."""
-    html = f"""
-    <html>
-    <body>
-        <h3>{title}</h3>
-        {f"<div><b>Due:</b> {due_date}</div>" if due_date else ""}
-    {f"<div><b>Reminder:</b> {reminder}</div>" if reminder else ""}
-        {f"<div><b>Notes:</b> {notes}</div>" if notes else ""}
-    </body>
-    </html>
-    """
-    os.makedirs(".work", exist_ok=True)
-    with open(".work/task.html", "w", encoding="utf-8") as f:
-        f.write(html)
-    return "Task created"
+    """Create a task via webhook (FR008)."""
+    try:
+        _ = task_webhook.create_task(title=title, due=due_date, reminder=reminder)
+        return "Task created"
+    except Exception as e:
+        logging.getLogger("OfficeAutomation").exception("create_task failed: %s", e)
+        return f"Task creation failed: {e}"
 
 
 async def main():

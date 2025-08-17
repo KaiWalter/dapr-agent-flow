@@ -78,6 +78,9 @@ VOICE_DOWNLOAD_DIR="./.work/voice"       # Local directory for downloads
 
 # Email
 SEND_MAIL_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
+
+# Tasks (Webhook)
+CREATE_TASK_WEBHOOK_URL="https://your.task.endpoint/ingest"  # Target webhook for creating tasks (FR008)
 ```
 
 ### Optional Environment Variables
@@ -158,6 +161,20 @@ Optionally, if using an interactive flow, you can use the authenticator service:
 ```
 
 Note: The authenticator requests scopes: User.Read, Files.ReadWrite, and Mail.Send. If you previously authenticated without Mail.Send, re-run the authenticator once to grant the additional scope before sending email (FR007).
+
+### Task Webhook Contract (FR008)
+
+The OfficeAutomation agent creates tasks by POSTing to `CREATE_TASK_WEBHOOK_URL` with this exact JSON body:
+
+```
+{
+  "title": "some title",
+  "due": "optional - ISO8601 datetime",
+  "reminder": "optional - ISO8601 datetime"
+}
+```
+
+Fields `due` and `reminder` are omitted when not provided. The Tasker agent tools provide timezone details to help you build proper ISO8601 strings with offsets.
 
 ## Monitoring and Logs
 
