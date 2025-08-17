@@ -26,7 +26,7 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
-        "task": f"Process pre-evaluated voice transcription from {input.get('transcription_path')}. "
+        "task": f"Process pre-evaluated voice transcription from [{input.get('transcription_path')}]. "
                 f"From first 2 sentences extract the user's intent and plan the next steps. "
                 f"Treat the remaining transcription text just as a note with no further intent to consider. "
                 f"Explicit user intent can be: create a task. "
