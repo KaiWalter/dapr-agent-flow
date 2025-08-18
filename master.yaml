@@ -7,9 +7,6 @@ common:
   daprdLogDestination: file
   enableAPILogging: false
   env:
-    ONEDRIVE_VOICE_INBOX: "/Recordings/Inbox"
-    ONEDRIVE_VOICE_ARCHIVE: "/Recordings/Archive"
-    OFFICE_TIMEZONE: "Europe/Berlin"
     DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 
 apps:
