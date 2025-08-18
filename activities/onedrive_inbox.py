@@ -16,12 +16,12 @@ logger.setLevel(getattr(logging, level, logging.INFO))
 
 PENDING_PREFIX = "voice_inbox_pending:"  # to avoid duplicates during polling
 DOWNLOADED_PREFIX = "voice_inbox_downloaded:"  # idempotency tracking
-DOWNLOAD_DIR = os.getenv("VOICE_DOWNLOAD_DIR", "./.work/voice")
-
 
 def list_onedrive_inbox(ctx, req: dict) -> dict:
     data = ListInboxRequest.model_validate(req)
-    folder = data.folder_path or os.getenv("ONEDRIVE_VOICE_INBOX", "/Voice/Inbox")
+    folder = data.inbox_folder
+    if not folder:
+        raise ValueError("list_onedrive_inbox requires 'inbox_folder' in request input.")
     logger.info("Listing OneDrive inbox folder=%s", folder)
     http = HttpClient()
     try:
@@ -41,7 +41,6 @@ def list_onedrive_inbox(ctx, req: dict) -> dict:
         name = f.name.lower()
         if name.endswith(".wav") or name.endswith(".mp3"):
             return True
-        # Optionally, check for more metadata if available in FileRef
         return False
 
     # Filter out files that were already downloaded or are pending, and by type
@@ -70,7 +69,6 @@ def list_onedrive_inbox(ctx, req: dict) -> dict:
     )
     return ListInboxResult(files=filtered).model_dump()
 
-
 def mark_file_pending(ctx, req: dict) -> dict:
     data = MarkPendingRequest.model_validate(req)
     logger.info("Marking file pending id=%s", data.file_id)
@@ -84,7 +82,7 @@ def download_onedrive_file(ctx, req: dict) -> dict:
     http = HttpClient()
     svc = OneDriveService(http)
     dl_url = svc.get_download_url(data.file.id)
-    dest_dir = data.target_dir or DOWNLOAD_DIR
+    dest_dir = data.download_folder or os.getenv("LOCAL_VOICE_DOWNLOAD_FOLDER", "./.work/voice")
     os.makedirs(dest_dir, exist_ok=True)
     dest_path = os.path.join(dest_dir, data.file.name)
     logger.info("Downloading OneDrive file id=%s name=%s -> %s", data.file.id, data.file.name, dest_path)

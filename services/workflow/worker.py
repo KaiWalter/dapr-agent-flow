@@ -34,20 +34,46 @@ logger = logging.getLogger("workflow")
 def main():
     from dapr.clients import DaprClient
     poll_interval = int(os.getenv("ONEDRIVE_VOICE_POLL_INTERVAL", "30"))
-    folder_path = os.getenv("ONEDRIVE_VOICE_INBOX")
+    offline_mode = os.getenv("OFFLINE_MODE", "false").lower() == "true"
+    # Resolve all config at Tier 1 and pass it down (Tier 2/3 shouldn't read env for this)
+    inbox_folder = (
+        os.getenv("LOCAL_VOICE_INBOX", "./local_voice_inbox")
+        if offline_mode
+        else os.getenv("ONEDRIVE_VOICE_INBOX")
+    )
+    archive_folder = (
+        os.getenv("LOCAL_VOICE_ARCHIVE", "./local_voice_archive")
+        if offline_mode
+        else os.getenv("ONEDRIVE_VOICE_ARCHIVE")
+    )
+    download_folder = os.getenv("LOCAL_VOICE_DOWNLOAD_FOLDER", "./.work/voice")
+
+    # Ensure local dirs exist in offline mode for smoother testing
+    if offline_mode:
+        if inbox_folder:
+            os.makedirs(inbox_folder, exist_ok=True)
+        if archive_folder:
+            os.makedirs(archive_folder, exist_ok=True)
 
     try:
         with DaprClient() as d:
             while True:
                 import json
-                event = {"folder_path": folder_path}
+                event = {
+                    "offline_mode": offline_mode,
+                    "inbox_folder": inbox_folder,
+                    "archive_folder": archive_folder,
+                    "download_folder": download_folder,
+                }
                 d.publish_event(
                     pubsub_name="pubsub",
                     topic_name="voice2action-schedule",
                     data=json.dumps(event),
                     data_content_type="application/json",
                 )
-                logger.info(f"Published schedule event to pubsub: {event}")
+                logger.info(
+                    f"Published schedule event to pubsub (mode={'offline' if offline_mode else 'onedrive'}): {event}"
+                )
                 sleep(poll_interval)
     except KeyboardInterrupt:
         logger.info("Stopping...")

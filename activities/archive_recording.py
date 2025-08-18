@@ -1,16 +1,45 @@
 import os
 from services.onedrive import move_file_to_archive
+from services.local_inbox import move_file_to_local_archive
 
-def archive_recording_activity(ctx, input: dict) -> dict:
+def archive_recording_onedrive_activity(ctx, input: dict) -> dict:
     """
-    Activity to move a processed recording from the inbox to the archive folder on OneDrive.
-    Expects input dict with keys: 'file_id', 'file_name', 'inbox_folder', 'archive_folder' (optional).
+    Archive implementation for OneDrive.
+    Expects: { 'file_id': str, 'file_name': str|None, 'inbox_folder': str|None, 'archive_folder': str|None }
     """
     file_id = input['file_id']
     file_name = input.get('file_name')
     inbox_folder = input.get('inbox_folder')
-    archive_folder = input.get('archive_folder') or os.getenv('ONEDRIVE_VOICE_ARCHIVE')
+    archive_folder = input.get('archive_folder')
     if not archive_folder:
-        raise ValueError("ONEDRIVE_VOICE_ARCHIVE environment variable not set and no archive_folder provided.")
+        raise ValueError("archive_recording_onedrive_activity requires 'archive_folder' in input.")
+    if not inbox_folder:
+        raise ValueError("archive_recording_onedrive_activity requires 'inbox_folder' in input.")
     move_file_to_archive(file_id=file_id, file_name=file_name, inbox_folder=inbox_folder, archive_folder=archive_folder)
     return {'status': 'archived', 'file_id': file_id, 'archive_folder': archive_folder}
+
+
+def archive_recording_local_activity(ctx, input: dict) -> dict:
+    """
+    Archive implementation for local filesystem.
+    Expects: { 'file_id': str, 'file_name': str|None, 'inbox_folder': str|None, 'archive_folder': str|None }
+    """
+    file_id = input['file_id']
+    file_name = input.get('file_name')
+    inbox_folder = input.get('inbox_folder')
+    archive_folder = input.get('archive_folder')
+    if not archive_folder:
+        raise ValueError("archive_recording_local_activity requires 'archive_folder' in input.")
+    if not inbox_folder:
+        raise ValueError("archive_recording_local_activity requires 'inbox_folder' in input.")
+    os.makedirs(archive_folder, exist_ok=True)
+    move_file_to_local_archive(file_name=file_name or file_id, inbox_folder=inbox_folder, archive_folder=archive_folder)
+    return {'status': 'archived', 'file_id': file_id, 'archive_folder': archive_folder}
+
+
+# Backward-compat wrapper (not used by workflow after Tier-2 switch)
+def archive_recording_activity(ctx, input: dict) -> dict:
+    # Legacy: requires explicit 'mode' to be passed in input if used
+    if input.get("mode") == "offline":
+        return archive_recording_local_activity(ctx, input)
+    return archive_recording_onedrive_activity(ctx, input)

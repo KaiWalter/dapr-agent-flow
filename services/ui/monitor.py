@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, request
 
+
 # Logging setup (repo convention)
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
 root = logging.getLogger()
@@ -15,6 +16,8 @@ if not root.handlers:
     root.addHandler(handler)
 root.setLevel(getattr(logging, level, logging.INFO))
 logger = logging.getLogger("monitor")
+# Suppress werkzeug INFO logs
+logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
 # Debugpy remote debugging (repo convention)
 if os.getenv("DEBUGPY_ENABLE", "0") == "1":

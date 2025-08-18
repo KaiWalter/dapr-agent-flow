@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # folders to clean
-folders=(.dapr/logs .dapr_state .work/voice .work)
+folders=(.dapr/logs .dapr_state .work/voice .work .data/local_voice_inbox .data/local_voice_archive)
 for folder in "${folders[@]}"; do
 	files=("$folder"/*)
 	found_file=false
@@ -15,6 +15,10 @@ for folder in "${folders[@]}"; do
 		find "$folder" -maxdepth 1 -type f -exec rm {} +
 	fi
 done
+
+# remove file markers from REDIS
+nix-shell -p redis --run "redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL"
+nix-shell -p redis --run "redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL"
 
 source .venv/bin/activate
 source <(cat .env)

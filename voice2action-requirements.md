@@ -63,13 +63,27 @@
 }
 ```
 
+- **FR009**: Offline Recordings Mode
+	- As a user I want to be able to set the system in an offline mode, where files are not downloaded from OneDrive but from the local filesystem.
+	- I want to be able to set this mode explcitily with environment variable `OFFLINE_MODE` which need to have the value **true** - case-insensitive.
+	- In such a case not OneDrive is polled [see FR001] but a folder on the local system specified by `LOCAL_VOICE_INBOX` in the format `/folder/inbox-folder`.
+	- The same applies for archiving the file [see FR006] on the local system specified by `LOCAL_VOICE_ARCHIVE` in the format `/folder/archive-folder`.
+	- Create both folders in case those do not exist yet.
+	- Sending emails or creating tasks still uses online capabilities.
+	- Existing workflows are to be used. Just the points which interact with OneDrive needs to be switchable to local filesystem.
+	-  relevant: `TR004`
+
+
 ## Technical
 
 - **TR001**: MS Graph authentication and token management
-	- Use MSAL client credentials flow with `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET` (from environment or secret store).
-	- Store the MSAL token cache (including refresh tokens) in the Dapr state store for durability and reuse across restarts.
-	- Tokens are refreshed automatically before expiry by the OneDrive service; activities/services do not handle tokens directly.
-	- No manual token provisioning is required after initial configuration; all token management is handled transparently.
+	- Use MSAL Authorization Code Flow (delegated) for personal Microsoft accounts with scopes: `User.Read`, `Files.ReadWrite`, `Mail.Send`.
+	- Bootstrap once using the authenticator UI to obtain user consent and seed the MSAL token cache; after that, no manual token steps are required.
+	- Persist the MSAL token cache (including refresh tokens) in a Dapr state store for durability and reuse across restarts.
+		- State store name via `TOKEN_STATE_STORE_NAME` (default `tokenstatestore`), cache key: `global_ms_graph_token_cache`.
+	- OneDrive/Outlook services automatically refresh tokens before expiry; activities/tools do not handle tokens directly.
+	- Configuration via env (or secret store): `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_GRAPH_AUTHORITY` (default `https://login.microsoftonline.com/consumers`).
+	- Optional (enterprise): For work/school tenants, Client Credentials Flow with application permissions may be supported; document separate scopes/authority and use a different cache key.
 
 - **TR002**: Use OpenAI Whisper API for transcription and OpenAI models for classifications
     - Use `OPENAI_API_KEY` (from environment or secret store) for authentication.
@@ -80,3 +94,18 @@
 	- Publish classification results to the orchestrator via Dapr pub/sub (component `pubsub`) on topic `IntentOrchestrator`.
 	- Each action identified shall be implemented as a tool available to the orchestrator/agents.
 	- Use <https://github.com/dapr/dapr-agents/tree/main/quickstarts/05-multi-agent-workflows/services> as scaffolding structure.
+
+- **TR004**: Consider repository structure for layering
+	- Consider [repository structure in README.md](./README.md) carefully to decide where to split and place logic.
+	- Tiering rules (enforced):
+		- Tier 1 (workers/entrypoints) is the single place that reads environment variables controlling runtime mode and folders. It computes and passes a minimal config into workflows.
+		- Tiers 2/3 (workflows and activities) must not read mode/folder environment variables. They only consume values passed from Tier 1.
+	- Config contract passed from Tier 1:
+		- `offline_mode` (bool)
+		- `inbox_folder` (string)
+		- `archive_folder` (string)
+		- `download_folder` (string)
+	- Naming convention: Prefer `_folder` suffix for path-like settings (e.g., `inbox_folder`, `archive_folder`, `download_folder`).
+	- Tier 1 reads env only for these inputs, then publishes/schedules workflows with the config:
+		- `OFFLINE_MODE`, `ONEDRIVE_VOICE_INBOX`, `ONEDRIVE_VOICE_ARCHIVE`, `LOCAL_VOICE_INBOX`, `LOCAL_VOICE_ARCHIVE`, `VOICE_DOWNLOAD_DIR`.
+	- Activities must validate required inputs (e.g., require `inbox_folder`/`archive_folder` where needed) and remain stateless and env-free for these settings, improving testability.

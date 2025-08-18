@@ -13,7 +13,7 @@ from activities.onedrive_inbox import (
 from activities.transcribe_audio import transcribe_audio_activity
 from activities.publish_intent_orchestrator import publish_intent_plan_activity
 
-from activities.archive_recording import archive_recording_activity
+# Archive activities are imported conditionally per mode below
 
 
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -57,12 +57,18 @@ def start_runtime():
     runtime = WorkflowRuntime()
     runtime.register_workflow(voice2action_poll_orchestrator)
     runtime.register_workflow(voice2action_per_file_orchestrator)
+    # Register both local and onedrive activities; orchestrator will pick based on config
+    from activities.local_inbox import list_local_inbox_activity, prepare_local_file_activity
+    runtime.register_activity(list_local_inbox_activity)
+    runtime.register_activity(prepare_local_file_activity)
     runtime.register_activity(list_onedrive_inbox)
-    runtime.register_activity(mark_file_pending)
     runtime.register_activity(download_onedrive_file)
+    from activities.archive_recording import archive_recording_local_activity, archive_recording_onedrive_activity
+    runtime.register_activity(archive_recording_local_activity)
+    runtime.register_activity(archive_recording_onedrive_activity)
+    runtime.register_activity(mark_file_pending)
     runtime.register_activity(transcribe_audio_activity)
     runtime.register_activity(publish_intent_plan_activity)
-    runtime.register_activity(archive_recording_activity)
     runtime.start()
 
 if __name__ == "__main__":

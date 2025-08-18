@@ -27,7 +27,7 @@ class FileRef(BaseModel):
 
 
 class ListInboxRequest(BaseModel):
-    folder_path: Optional[str] = None
+    inbox_folder: Optional[str] = None
     corr_id: Optional[str] = None
 
 
@@ -38,7 +38,7 @@ class ListInboxResult(BaseModel):
 class DownloadRequest(BaseModel):
     file: FileRef
     corr_id: Optional[str] = None
-    target_dir: Optional[str] = None
+    download_folder: Optional[str] = None
 
 
 class MarkPendingRequest(BaseModel):

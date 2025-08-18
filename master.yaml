@@ -7,6 +7,10 @@ common:
   daprdLogDestination: file
   enableAPILogging: false
   env:
+    OFFLINE_MODE: "true" 
+    LOCAL_VOICE_INBOX: "./.data/local_voice_inbox" 
+    LOCAL_VOICE_ARCHIVE: "./.data/local_voice_archive" 
+    LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
     DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 
 apps:

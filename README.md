@@ -31,27 +31,44 @@ The Voice2Action workflow implements an end-to-end voice processing pipeline wit
 - Implements agent-based architecture with specialized agents
 
 
-## Architecture
+## Repository Structure
 
-The system uses the following components:
+### Top Level / Tier 1 Structure
 
-### Dapr Workflow Orchestration
-- **Worker Services**: Handle workflow execution and pub/sub event processing
-- **Activities**: Implement individual workflow steps (download, transcribe, classify)
-- **State Management**: Persistent storage via Dapr state store for workflow state and file tracking
+The structure leans into structures provided by [quickstart samples](https://github.com/dapr/dapr-agents/tree/main/quickstarts). Some polishing is still required, but I wanted to get the code out there to get feedback and learnings from the community.
 
-### Intent Orchestrator Framework
-- **Intent Orchestrator** (port 5100): Coordinates agent interactions and workflow decisions  
-- **TaskPlanner Agent** (port 5101): Specialized agent for creating and managing tasks
-- **FallbackEmailer Agent** (port 5102): Handles email notifications for unclassified content
+[Dapr Multi-App Run](https://docs.dapr.io/developing-applications/local-development/multi-app-dapr-run/multi-app-overview/) file `master.yaml` points to the top-level applications and entry points:
 
-### Services
-- **OneDrive Integration**: MS Graph API for file operations with automatic token management
-- **OpenAI Integration**: Whisper API for transcription, GPT models for content classification
-- **HTTP Client**: Reusable service for external API calls
-- **State Stores**:
-  - Workflow/Actor state: SQLite via `components/workflowstate.yaml` (actorStateStore=true)
-  - Token cache store: Redis via `components/tokenstate.yml` (name: `tokenstatestore`) used by MSAL for durable token cache
+- **services/ui/authenticator** : a small web UI that redirects into a MS Entra ID login which on callback serializes the access and refresh tokens into a Dapr state store;
+  from there token information is picked up to authenticate for OneDrive and OpenAI API calls by the other services;
+  basic idea is to make the login once and let the workflow processes run in the background without further interaction
+- **services/workflow/worker** : runs the main polling loop at a timed interval to kick off the workflow, and the workflows to come, with a pub/sub signal;
+  with that I achieve some loose coupling between the workflow and the main loop (instead of using child workflows or alike)
+- **services/workflow/worker_voice2action** : defines the deterministic steps of the main Voice-2-Action workflow;
+  schedules a new instance when receiving pub/sub event from the main worker **services/workflow/worker**
+- **services/intent_orchestrator/app** : bringing a LLM orchestrator for intent processing into standby, waiting for pub/sub events from **services/workflow/worker_voice2action** publish intent orchestrator activity
+- **services/intent_orchestrator/agent_tasker** : participating in above orchestration as a utility agent which delivers information required for the flow like the transcript or time zone information
+- **services/intent_orchestrator/agent_office_automation** : participating in above orchestration to fulfill all tasks which connect the flow to office automation, like creating tasks or sending emails
+- **services/ui/monitor** : a small console app listening to and printing the LLM orchestration broadcast messages to allow for a better understanding of the flow; this is absolutely required to fine-tune the instructions to the orchestrator and the agents
+
+### Tier 2 Elements
+
+- **workflows/voicetoaction / voice2action_poll_orchestrator** : orchestrating the activities to list the files on OneDrive, marking new files and handing of each single file to child workflow ...
+- **workflows/voicetoaction / voice2action_per_file_orchestrator** : ... orchestrating in sequential order: download recording, transcription, publish to intent workflow and then archive the file
+
+### Tier 3 Elements
+
+On this level in folder **activities** are workflow activities defined in modules which are referenced by deterministic workflows.
+
+### Tier 4 Elements
+
+Folder **services** directly contains helper services which are used by workflow activities or agents.
+
+### Other Elements
+
+Folder **components** holds all Dapr resource components used by all applications. Important to note is, that **state stores are segregated for their purpose**: for workflow state, for agent state and for token state. This is required as these state types require different configuration for prefixing state keys and the ability to hold actors.
+
+Folder **models** contains common model definitions used by the workflow elements and agents.
 
 ## Environment Configuration
 
@@ -74,7 +91,7 @@ OPENAI_API_KEY="your-openai-api-key"
 OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
 # Local Storage
-VOICE_DOWNLOAD_DIR="./.work/voice"       # Local directory for downloads
+LOCAL_VOICE_DOWNLOAD_FOLDER="./.work/voice"       # Local directory for downloads
 
 # Email
 SEND_MAIL_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
@@ -95,6 +112,11 @@ DAPR_LOG_LEVEL="info"                       # Logging level
 DAPR_INTENT_ORCHESTRATOR_TOPIC="IntentOrchestrator"  # Pub/sub topic for intent orchestrator
 # Token Cache State Store (MSAL)
 TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name for token cache
+
+# Offline Mode (FR009)
+OFFLINE_MODE="false"                        # Set to "true" to use local inbox/archive instead of OneDrive
+LOCAL_VOICE_INBOX="./local_voice_inbox"     # Local folder for incoming audio files (used if OFFLINE_MODE=true)
+LOCAL_VOICE_ARCHIVE="./local_voice_archive" # Local folder for archiving processed files (used if OFFLINE_MODE=true)
 
 # Development/Debugging
 DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
