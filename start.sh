@@ -20,15 +20,16 @@ done
 redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL
 redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL
 
-source .venv/bin/activate
-source <(cat .env)
-
-# Ensure web-monitor Node deps are installed
-if [ -f services/ui/web_monitor/package-lock.json ]; then
-	npm --prefix services/ui/web_monitor ci || npm --prefix services/ui/web_monitor install
-else
-	npm --prefix services/ui/web_monitor install
+# activate virtualenv only if not already in .venv
+if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; then
+	if [ -f .venv/bin/activate ]; then
+		source .venv/bin/activate
+	else
+		echo "Warning: .venv not found at .venv/bin/activate; continuing without activating a venv" >&2
+	fi
 fi
+
+source <(cat .env)
 
 dapr run -f master.yaml &
 pid=$!

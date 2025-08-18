@@ -7,17 +7,15 @@ common:
   daprdLogDestination: file
   enableAPILogging: false
   env:
-    OFFLINE_MODE: "true" 
-    LOCAL_VOICE_INBOX: "./.data/local_voice_inbox" 
-    LOCAL_VOICE_ARCHIVE: "./.data/local_voice_archive" 
     LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
     DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 
 apps:
-  - appID: authenticator
-    appDirPath: ./
-    appPort: 5000
-    command: ["python", "-m", "services.ui.authenticator"]
+  # - appID: authenticator
+  #   appDirPath: ./
+  #   appPort: 5000
+  #   command: ["python", "-m", "services.ui.authenticator"]
+
   - appID: workflows
     appDirPath: ./
     env:
@@ -25,6 +23,7 @@ apps:
       PYDEVD_DISABLE_FILE_VALIDATION: 1
       ONEDRIVE_VOICE_POLL_INTERVAL: 60
     command: ["python", "-m", "services.workflow.worker"]
+
   - appID: worker-voice2action
     appDirPath: ./
     appPort: 5001
@@ -33,6 +32,7 @@ apps:
       PYDEVD_DISABLE_FILE_VALIDATION: 1
       DAPR_INTENT_ORCHESTRATOR_TOPIC: IntentOrchestrator
     command: ["python", "-m", "services.workflow.worker_voice2action"]
+
   - appID: orchestrator-intent
     appDirPath: ./
     appPort: 5100
@@ -79,10 +79,10 @@ apps:
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.ui.monitor"]
 
-  - appID: web-monitor
-    appDirPath: ./
-    appPort: 5200
-    env:
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_BROADCAST_TOPIC: beacon_channel
-    command: ["node", "services/ui/web_monitor/server.js"]
+  # - appID: web-monitor
+  #   appDirPath: ./
+  #   appPort: 5200
+  #   env:
+  #     DAPR_PUBSUB_NAME: pubsub
+  #     DAPR_BROADCAST_TOPIC: beacon_channel
+  #   command: ["node", "services/ui/web_monitor/server.js"]
