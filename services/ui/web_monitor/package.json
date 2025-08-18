@@ -1,0 +1,14 @@
+{
+  "name": "web-monitor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Web-based LLM workflow monitor (SSE)",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node services/ui/web_monitor/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,23 @@
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0f172a;color:#e2e8f0}
+header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111827;border-bottom:1px solid #1f2937}
+header h1{margin:0;font-size:16px;color:#93c5fd}
+.status{font-size:12px;padding:4px 8px;border-radius:999px;background:#1f2937;color:#fca5a5}
+.status.ok{background:#063; color:#d1fae5}
+main{height:calc(100vh - 96px);overflow:auto;padding:16px 12px;}
+footer{height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;background:#111827;border-top:1px solid #1f2937}
+.hint{color:#94a3b8;font-size:12px}
+
+.msg{max-width:800px;margin:12px auto;display:flex;flex-direction:column;gap:6px}
+.msg.left .bubble{align-self:flex-start;background:#1f2937;color:#e5e7eb;border:1px solid #334155}
+.msg.right .bubble{align-self:flex-end;background:#0b3f5c;color:#e0f2fe;border:1px solid #0ea5e9}
+.meta{font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.meta .actor{display:flex;align-items:center;gap:6px}
+.meta .icon{font-size:14px}
+.bubble{padding:10px 12px;border-radius:5px;white-space:pre-wrap;word-wrap:break-word}
+
+/* Basic Markdown */
+.bubble h1,.bubble h2,.bubble h3{margin:6px 0;color:#c7d2fe}
+.bubble h4,.bubble h5,.bubble h6{margin:6px 0;color:#a5b4fc}
+.bubble ul,.bubble ol{margin:6px 0 6px 18px}
+.bubble code{background:#0b2533;color:#a7f3d0;padding:1px 4px;border-radius:4px}
+.bubble pre.code{background:#0b2533;color:#d1fae5;padding:10px;border-radius:8px;overflow:auto}

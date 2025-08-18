@@ -1,4 +1,28 @@
-# Data and State files
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+
+# Node
+node_modules/
+services/ui/web_monitor/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Dapr/local runtime
+.dapr/
+.dapr_state/
+
+# Local data/work artifacts
+.work/
+.data/
+
+# Environment
+.env# Data and State files
 .data/
 .dapr/
 .dapr_state/

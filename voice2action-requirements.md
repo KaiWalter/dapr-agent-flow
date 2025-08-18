@@ -73,6 +73,15 @@
 	- Existing workflows are to be used. Just the points which interact with OneDrive needs to be switchable to local filesystem.
 	-  relevant: `TR004`
 
+-- **FR010**: Web-based LLM workflow monitor
+	- Additionally to `FR004` a simple web SPA is required to observe conversation flow of LLM orchestrator and agents.
+	- Call it `web-monitor`.
+	- Monitor shall listen to the same topic (`beacon_channel`) as the agents involved in the intent workflow.
+	- The web SPA shall use signaling to let the web backend app send updates to the web frontend.
+	- Let the design be a nice and modern chat like rendering.
+	- Monitor shall start together with the other Dapr applications and use all common settings.
+	- Monitor shall be implemented with Node.js.
+	- relevant: `TR003`
 
 ## Technical
 

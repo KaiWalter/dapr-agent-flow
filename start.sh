@@ -17,11 +17,18 @@ for folder in "${folders[@]}"; do
 done
 
 # remove file markers from REDIS
-nix-shell -p redis --run "redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL"
-nix-shell -p redis --run "redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL"
+redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL
+redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL
 
 source .venv/bin/activate
 source <(cat .env)
+
+# Ensure web-monitor Node deps are installed
+if [ -f services/ui/web_monitor/package-lock.json ]; then
+	npm --prefix services/ui/web_monitor ci || npm --prefix services/ui/web_monitor install
+else
+	npm --prefix services/ui/web_monitor install
+fi
 
 dapr run -f master.yaml &
 pid=$!

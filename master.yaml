@@ -78,3 +78,11 @@ apps:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.ui.monitor"]
+
+  - appID: web-monitor
+    appDirPath: ./
+    appPort: 5200
+    env:
+      DAPR_PUBSUB_NAME: pubsub
+      DAPR_BROADCAST_TOPIC: beacon_channel
+    command: ["node", "services/ui/web_monitor/server.js"]
