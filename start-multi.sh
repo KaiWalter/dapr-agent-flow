@@ -29,7 +29,11 @@ if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; the
 	fi
 fi
 
-source <(cat .env)
+if [ -f .env ]; then
+	set -a
+	. .env
+	set +a
+fi
 
 dapr run -f master.yaml &
 pid=$!

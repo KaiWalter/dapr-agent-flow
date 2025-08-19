@@ -1,6 +1,6 @@
 dapr-agents>=0.8.2
-dapr-ext-workflow>=1.16.0
-dapr>=1.16.0
+dapr-ext-workflow==1.16.0rc1
+dapr==1.16.0rc1
 debugpy>=1.8.0
 flask>=2.3.0
 msal>=1.23.0

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dapr_agents import LLMOrchestrator
+from dapr_agents import LLMOrchestrator, OpenAIChatClient
 import os
 import logging
 import asyncio
@@ -25,15 +25,18 @@ async def main():
         debugpy.wait_for_client()
         
     try:
+        openai_llm = OpenAIChatClient(model="gpt-4o-mini")
         orchestrator = (
             LLMOrchestrator(
                 name="IntentOrchestrator",
+                llm=openai_llm,
                 local_state_path="./.dapr_state",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
                 agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",
+                orchestrator_topic_name=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "IntentOrchestrator"),
                 broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
                 max_iterations=int(os.getenv("INTENT_ORCH_MAX_ITERATIONS", "3")),
             ).as_service(port=int(os.getenv("DAPR_APP_PORT", "5100")))

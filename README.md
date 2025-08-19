@@ -11,25 +11,11 @@ The implementation is based on a [N8N](https://n8n.io) flow that monitors voice 
 
 ## Voice2Action Workflow
 
-The Voice2Action workflow implements an end-to-end voice processing pipeline with three main stages:
+Basic flow as implemented here - see [my post](https://dev.to/kaiwalter/dipping-into-dapr-agentic-workflows-fbi) for more background:
 
-### FR001: OneDrive Voice Recording Download
-- Polls a OneDrive folder for new voice recordings (`audio/x-wav` and `audio/mpeg` files only)
-- Downloads only files not previously processed
-- Automatic polling at configurable intervals
-- Uses MSAL client credentials flow for Graph API authentication
-
-### FR002: Voice Transcription  
-- Transcribes voice recordings using OpenAI Whisper API
-- Stores transcription in JSON format alongside the original file
-- Preserves file structure and metadata
-
-- Uses Dapr Agents with Intent Orchestrator to analyze transcriptions
-- Determines appropriate actions based on content:
-  - **Task Creation**: Creates todo items for detected commands/reminders
-  - **Email Fallback**: Sends email notifications for general notes
-- Implements agent-based architecture with specialized agents
-
+1. polling on OneDrive, downloading and transcribing the voice recording runs in a deterministic workflow
+2. transcript is then handed to LLM-orchestrated agents which have instructions to figure out what to do with the transcription
+3. agents to make use of tools (probably MCP servers in the future) to interact with the outside world
 
 ## Repository Structure
 
@@ -156,62 +142,26 @@ export MS_GRAPH_CLIENT_SECRET="your-azure-app-client-secret"
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-### 3. Run the Complete System
+### Run the Complete System
+
+Maintain your environment variables in `.env` in this format:
+
+```env
+export ONEDRIVE_VOICE_INBOX="/Recordings/Inbox"
+export ONEDRIVE_VOICE_ARCHIVE="/Recordings/Processed"
+export OFFICE_TIMEZONE="Europe/Berlin"
+```
 
 Start all services using the Dapr multi-app runner:
 
 ```bash
-dapr run -f master.yaml
+dapr init
+./start-multi.sh
 ```
 
-This starts:
-- **authenticator** (port 5000): Initial Graph authentication helper
-- **workflows**: Workflow polling and orchestration worker  
-- **worker-voice2action** (port 5001): Voice2Action workflow worker with pub/sub subscriber
-- **intent-orchestrator** (port 5100): Intent-based action planning orchestrator
-- **agent-taskplanner** (port 5101): Task creation agent
-- **agent-fallback-emailer** (port 5102): Email notification agent
+or with Docker Compose
 
-### 4. Initial Authentication
-
-With delegated MSAL tokens, no manual token provisioning is required after the first interactive consent; tokens are refreshed automatically and stored durably in the `tokenstatestore`.
-
-Optionally, if using an interactive flow, you can use the authenticator service:
 ```bash
-# Navigate to http://localhost:5000 to complete OAuth flow
-# Tokens are automatically stored in Dapr state store for reuse
+dapr init --slim
+./start-docker-compose.sh
 ```
-
-Note: The authenticator requests scopes: User.Read, Files.ReadWrite, and Mail.Send. If you previously authenticated without Mail.Send, re-run the authenticator once to grant the additional scope before sending email (FR007).
-
-### Task Webhook Contract (FR008)
-
-The OfficeAutomation agent creates tasks by POSTing to `CREATE_TASK_WEBHOOK_URL` with this exact JSON body:
-
-```
-{
-  "title": "some title",
-  "due": "optional - ISO8601 datetime",
-  "reminder": "optional - ISO8601 datetime"
-}
-```
-
-Fields `due` and `reminder` are omitted when not provided. The Tasker agent tools provide timezone details to help you build proper ISO8601 strings with offsets.
-
-## Monitoring and Logs
-
-- **Workflow State**: Check Dapr state store for workflow execution status
-- **Agent States**: Individual agents maintain state in `{AgentName}_state.json` files
-- **File Processing**: Monitor `./.work/voice/` for processed recordings and transcriptions
-- **Logs**: All services output structured logs with correlation IDs for tracing
-
-## Development
-
-The codebase follows Dapr Agents best practices:
-- **Deterministic Orchestrators**: No I/O operations in workflow orchestrators
-- **Idempotent Activities**: All activities support retry and state recovery
-- **Event-Driven Architecture**: Pub/sub messaging between workflows and agents
-- **Structured Logging**: Consistent logging format with correlation tracking
-
-See [voice2action-requirements.md](./voice2action-requirements.md) for detailed functional and technical requirements.
-

@@ -4,53 +4,72 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
-    network_mode: host
+    networks:
+      - agent-flows
+    restart: unless-stopped
     volumes:
       - redis-data:/data
+
+  # Infra: Dapr placement service (required for workflows/actors)
+  placement:
+    image: daprio/dapr:1.16.0-rc.3
+    command: ["./placement", "--port", "50005"]
+    networks:
+      - agent-flows
     restart: unless-stopped
+
+  # Infra: Dapr scheduler service (required for workflows)
+  scheduler:
+    image: daprio/scheduler:1.16.0-rc.3
+    command: ["./scheduler", "--port", "50007", "--etcd-data-dir", "/data"]
+    networks:
+      - agent-flows
+    user: root
+    restart: unless-stopped
+    volumes:
+    - "./dapr-etcd-data/:/data"
 
   # authenticator (services/ui/authenticator.py)
   authenticator:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    ports:
+      - "5000:5000"
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
       DAPR_APP_PORT: "5000"
-      DAPR_HTTP_PORT: "3506"
-      DAPR_GRPC_PORT: "50008"
-      # Optionally pass MS Graph config from host env
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
+      PYTHONUNBUFFERED: "1"
       TOKEN_STATE_STORE_NAME: ${TOKEN_STATE_STORE_NAME:-tokenstatestore}
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.ui.authenticator"]
-    depends_on:
-      - redis
-      - placement
+    command: ["python", "-m", "services.ui.authenticator"]
     restart: unless-stopped
 
   authenticator-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:authenticator"
     depends_on:
-      - authenticator
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "authenticator",
       "--app-port", "5000",
-      "--dapr-http-port", "3506",
-      "--dapr-grpc-port", "50008",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", " ",
+      "--scheduler-host-address", " ",
       "--enable-metrics", "true",
       "--metrics-port", "9106",
       "--enable-profiling", "false"
@@ -59,54 +78,48 @@ services:
       - ./:/app
     restart: unless-stopped
 
-  # Infra: Dapr placement service (required for workflows/actors)
-  placement:
-    image: daprio/dapr:1.15.9
-    command: ["./placement", "--port", "50005"]
-    network_mode: host
-    restart: unless-stopped
-
   # workflows publisher (services/workflow/worker.py)
   workflows:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
+      - work:/.work
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_APP_PORT: "5001"
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DEBUGPY_ENABLE: "0"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
-      ONEDRIVE_VOICE_POLL_INTERVAL: "60"
-      # From host env
-      ONEDRIVE_VOICE_INBOX: ${ONEDRIVE_VOICE_INBOX}
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       ONEDRIVE_VOICE_ARCHIVE: ${ONEDRIVE_VOICE_ARCHIVE}
-      DAPR_HTTP_PORT: "3500"
-      DAPR_GRPC_PORT: "50001"
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.workflow.worker"]
-    depends_on:
-      - redis
-      - placement
+      ONEDRIVE_VOICE_INBOX: ${ONEDRIVE_VOICE_INBOX}
+      ONEDRIVE_VOICE_POLL_INTERVAL: "60"
+      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      PYTHONUNBUFFERED: "1"
+    command: ["python", "-m", "services.workflow.worker"]
     restart: unless-stopped
 
   workflows-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:workflows"
     depends_on:
-      - workflows
       - placement
       - redis
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "workflows",
-      "--dapr-http-port", "3500",
-      "--dapr-grpc-port", "50001",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--app-port", "5001",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", "placement:50005",
+      "--scheduler-host-address", "scheduler:50007", 
       "--enable-metrics", "true",
       "--metrics-port", "9100",
       "--enable-profiling", "false"
@@ -117,49 +130,48 @@ services:
 
   # worker-voice2action (services/workflow/worker_voice2action.py)
   worker-voice2action:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
+      - work:/.work
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
-      DEBUGPY_ENABLE: "0"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      DAPR_APP_PORT: "5002"
       DAPR_INTENT_ORCHESTRATOR_TOPIC: "IntentOrchestrator"
-      DAPR_APP_PORT: "5001"
-      DAPR_HTTP_PORT: "3501"
-      DAPR_GRPC_PORT: "50002"
-      # From host env
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DEBUGPY_ENABLE: "0"
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET}
-      MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.workflow.worker_voice2action"]
-    depends_on:
-      - redis
-      - placement
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      PYTHONUNBUFFERED: "1"
+    command: ["python", "-m", "services.workflow.worker_voice2action"]
     restart: unless-stopped
 
   worker-voice2action-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:worker-voice2action"
     depends_on:
-      - worker-voice2action
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "worker-voice2action",
-      "--app-port", "5001",
-      "--dapr-http-port", "3501",
-      "--dapr-grpc-port", "50002",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--app-port", "5002",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", "placement:50005",
+      "--scheduler-host-address", "scheduler:50007", 
       "--enable-metrics", "true",
       "--metrics-port", "9101",
       "--enable-profiling", "false"
@@ -170,45 +182,46 @@ services:
 
   # orchestrator-intent (services/intent_orchestrator/app.py)
   orchestrator-intent:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
+      - work:/.work
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_APP_PORT: "5100"
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_PUBSUB_NAME: pubsub
       DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
-      DAPR_APP_PORT: "5100"
-      DAPR_HTTP_PORT: "3502"
-      DAPR_GRPC_PORT: "50003"
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.intent_orchestrator.app"]
-    depends_on:
-      - redis
-      - placement
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    command: ["python", "-m", "services.intent_orchestrator.app"]
     restart: unless-stopped
 
   orchestrator-intent-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:orchestrator-intent"
     depends_on:
-      - orchestrator-intent
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "orchestrator-intent",
       "--app-port", "5100",
-      "--dapr-http-port", "3502",
-      "--dapr-grpc-port", "50003",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", "placement:50005",
+      "--scheduler-host-address", "scheduler:50007", 
       "--enable-metrics", "true",
       "--metrics-port", "9102",
       "--enable-profiling", "false"
@@ -219,52 +232,53 @@ services:
 
   # agent-taskplanner (services/intent_orchestrator/agent_tasker.py)
   agent-taskplanner:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
+      - work:/.work
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_APP_PORT: "5101"
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_PUBSUB_NAME: pubsub
       DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: "0"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
-      DAPR_APP_PORT: "5101"
-      DAPR_HTTP_PORT: "3503"
-      DAPR_GRPC_PORT: "50004"
-      # From host env
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       OFFICE_TIMEZONE: ${OFFICE_TIMEZONE}
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.intent_orchestrator.agent_tasker"]
-    depends_on:
-      - redis
-      - placement
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      PYTHONUNBUFFERED: "1"
+    command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
     restart: unless-stopped
 
   agent-taskplanner-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:agent-taskplanner"
     depends_on:
-      - agent-taskplanner
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "agent-taskplanner",
       "--app-port", "5101",
-      "--dapr-http-port", "3503",
-      "--dapr-grpc-port", "50004",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", " ",
+      "--scheduler-host-address", " ",
       "--enable-metrics", "true",
       "--metrics-port", "9103",
-      "--enable-profiling", "false"
+      "--enable-profiling", "false",
+      "--log-as-json"
     ]
     volumes:
       - ./:/app
@@ -272,56 +286,57 @@ services:
 
   # agent-office-automation (services/intent_orchestrator/agent_office_automation.py)
   agent-office-automation:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
+      - work:/.work
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      CREATE_TASK_WEBHOOK_URL: ${CREATE_TASK_WEBHOOK_URL}
+      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_APP_PORT: "5102"
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_PUBSUB_NAME: pubsub
       DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: "0"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
-      DAPR_APP_PORT: "5102"
-      DAPR_HTTP_PORT: "3504"
-      DAPR_GRPC_PORT: "50006"
-      # From host env
-      SEND_MAIL_RECIPIENT: ${SEND_MAIL_RECIPIENT}
-      CREATE_TASK_WEBHOOK_URL: ${CREATE_TASK_WEBHOOK_URL}
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET}
-      MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.intent_orchestrator.agent_office_automation"]
-    depends_on:
-      - redis
-      - placement
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      PYTHONUNBUFFERED: "1"
+      SEND_MAIL_RECIPIENT: ${SEND_MAIL_RECIPIENT}
+    command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
     restart: unless-stopped
 
   agent-office-automation-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:agent-office-automation"
     depends_on:
-      - agent-office-automation
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "agent-office-automation",
       "--app-port", "5102",
-      "--dapr-http-port", "3504",
-      "--dapr-grpc-port", "50006",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", " ",
+      "--scheduler-host-address", " ",
       "--enable-metrics", "true",
       "--metrics-port", "9104",
-      "--enable-profiling", "false"
+      "--enable-profiling", "false",
+      "--log-as-json"
     ]
     volumes:
       - ./:/app
@@ -329,45 +344,44 @@ services:
 
   # monitor (services/ui/monitor.py)
   monitor:
-    image: python:3.12-slim
-    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.python-base
+    image: dapr-agent-flow/python-base:local
+    networks:
+      - agent-flows
     working_dir: /app
     volumes:
       - ./:/app
-      - pip-cache:/root/.cache/pip
     environment:
-      PYTHONUNBUFFERED: "1"
-      DAPR_LOG_LEVEL: "warn"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_BROADCAST_TOPIC: beacon_channel
-      DEBUGPY_ENABLE: "0"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
       DAPR_APP_PORT: "5199"
-      DAPR_HTTP_PORT: "3505"
-      DAPR_GRPC_PORT: "50007"
-    command: ["bash", "-lc", "pip install -r requirements.txt && python -m services.ui.monitor"]
-    depends_on:
-      - redis
-      - placement
+      DAPR_BROADCAST_TOPIC: beacon_channel
+      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_PUBSUB_NAME: pubsub
+      DEBUGPY_ENABLE: "0"
+      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
+      PYDEVD_DISABLE_FILE_VALIDATION: "1"
+      PYTHONUNBUFFERED: "1"
+    command: ["python", "-m", "services.ui.monitor"]
     restart: unless-stopped
 
   monitor-dapr:
-    image: daprio/daprd:1.15.9
+    image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:monitor"
     depends_on:
-      - monitor
-      - placement
       - redis
+      - placement
+      - scheduler
     command: [
       "./daprd",
       "--app-id", "monitor",
       "--app-port", "5199",
-      "--dapr-http-port", "3505",
-      "--dapr-grpc-port", "50007",
-      "--resources-path", "/app/components",
-      "--placement-host-address", "127.0.0.1:50005",
+      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
+      "--config", "/app/docker-components/dapr-config.yaml",
+      "--resources-path", "/app/docker-components",
+      "--placement-host-address", " ",
+      "--scheduler-host-address", " ",
       "--enable-metrics", "true",
       "--metrics-port", "9105",
       "--enable-profiling", "false"
@@ -377,5 +391,9 @@ services:
     restart: unless-stopped
 
 volumes:
-  pip-cache: {}
   redis-data: {}
+  dapr-etcd-data: {}
+  work: {}
+
+networks:
+  agent-flows: null

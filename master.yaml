@@ -18,6 +18,7 @@ apps:
 
   - appID: workflows
     appDirPath: ./
+    appPort: 5001
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
@@ -26,7 +27,7 @@ apps:
 
   - appID: worker-voice2action
     appDirPath: ./
-    appPort: 5001
+    appPort: 5002
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1

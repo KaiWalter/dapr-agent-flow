@@ -79,7 +79,7 @@ def _get_office_timezone():
         return _timezone.utc
 
 @tool()
-def get_office_timezone() -> str:
+def get_office_timezone(*, unused: str = "") -> str:
     """Return the effective timezone name for the process (from OFFICE_TIMEZONE or system default)."""
     tz = os.getenv("OFFICE_TIMEZONE")
     if tz:
@@ -91,7 +91,7 @@ def get_office_timezone() -> str:
         return "UTC"
 
 @tool()
-def get_office_timezone_offset() -> str:
+def get_office_timezone_offset(*, unused: str = "") -> str:
     """Return the current offset for the effective timezone in ISO 8601 format (e.g., +02:00, Z)."""
     tz = _get_office_timezone()
     now = datetime.now(tz)

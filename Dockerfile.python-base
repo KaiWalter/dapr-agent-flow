@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1.7-labs
+
+# Base image for all Python apps in this repo
+FROM python:3.12-slim AS python-base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Global env for Python reliability and pip behavior
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Pre-install app dependencies once so app containers can skip pip install at runtime
+COPY requirements.txt /tmp/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip setuptools wheel && \
+    pip install -r /tmp/requirements.txt
+
+# Default command is a no-op; each service overrides with its module
+CMD ["python", "--version"]
