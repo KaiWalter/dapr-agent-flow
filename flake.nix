@@ -32,6 +32,8 @@
           bash
           zsh
           podman
+          podman-compose
+          docker-compose
           slirp4netns
           fuse-overlayfs
           netavark
@@ -86,6 +88,19 @@
 
             # API keys
             export OPENAI_API_KEY="$(op item get OpenAI --fields key --reveal)"
+
+            # Ensure /bin/bash exists and points to the devshell bash
+            if [ ! -e /bin/bash ] || [ "$(readlink -f /bin/bash)" != "$(command -v bash)" ]; then
+              sudo ln -sf "$(command -v bash)" /bin/bash 2>/dev/null || true
+            fi
+
+            # Make docker-compose available and compatible with Podman
+            if ! command -v docker-compose >/dev/null 2>&1; then
+              if command -v podman-compose >/dev/null 2>&1; then
+                ln -sf "$(command -v podman-compose)" "$HOME/.local/bin/docker-compose" 2>/dev/null || true
+                export PATH="$HOME/.local/bin:$PATH"
+              fi
+            fi
 
             # hand off to an interactive login zsh
             exec ${pkgs.zsh}/bin/zsh -i -l
