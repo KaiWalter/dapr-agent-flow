@@ -29,6 +29,7 @@
           openssl
           c-ares
           dapr-cli
+          bash
           zsh
           podman
           slirp4netns

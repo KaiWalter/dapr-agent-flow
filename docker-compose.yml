@@ -1,4 +1,3 @@
-# Docker Compose for running the multi-app Dapr setup defined in master.yaml
 services:
   # Infra: Redis for pubsub/state used by ./components/*.yaml (redisHost: localhost:6379)
   redis:
@@ -27,7 +26,7 @@ services:
     user: root
     restart: unless-stopped
     volumes:
-    - "./dapr-etcd-data/:/data"
+      - dapr-etcd-data:/data
 
   # authenticator (services/ui/authenticator.py)
   authenticator:
@@ -61,19 +60,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "authenticator",
-      "--app-port", "5000",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", " ",
-      "--scheduler-host-address", " ",
-      "--enable-metrics", "true",
-      "--metrics-port", "9106",
-      "--enable-profiling", "false"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "authenticator",
+        "--app-port",
+        "5000",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        " ",
+        "--scheduler-host-address",
+        " ",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9106",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -111,19 +119,28 @@ services:
       - placement
       - redis
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "workflows",
-      "--app-port", "5001",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", "placement:50005",
-      "--scheduler-host-address", "scheduler:50007", 
-      "--enable-metrics", "true",
-      "--metrics-port", "9100",
-      "--enable-profiling", "false"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "workflows",
+        "--app-port",
+        "5001",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        "placement:50005",
+        "--scheduler-host-address",
+        "scheduler:50007",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9100",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -163,19 +180,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "worker-voice2action",
-      "--app-port", "5002",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", "placement:50005",
-      "--scheduler-host-address", "scheduler:50007", 
-      "--enable-metrics", "true",
-      "--metrics-port", "9101",
-      "--enable-profiling", "false"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "worker-voice2action",
+        "--app-port",
+        "5002",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        "placement:50005",
+        "--scheduler-host-address",
+        "scheduler:50007",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9101",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -213,19 +239,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "orchestrator-intent",
-      "--app-port", "5100",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", "placement:50005",
-      "--scheduler-host-address", "scheduler:50007", 
-      "--enable-metrics", "true",
-      "--metrics-port", "9102",
-      "--enable-profiling", "false"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "orchestrator-intent",
+        "--app-port",
+        "5100",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        "placement:50005",
+        "--scheduler-host-address",
+        "scheduler:50007",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9102",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -266,20 +301,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "agent-taskplanner",
-      "--app-port", "5101",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", " ",
-      "--scheduler-host-address", " ",
-      "--enable-metrics", "true",
-      "--metrics-port", "9103",
-      "--enable-profiling", "false",
-      "--log-as-json"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "agent-taskplanner",
+        "--app-port",
+        "5101",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        "placement:50005",
+        "--scheduler-host-address",
+        "scheduler:50007",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9103",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -314,7 +357,8 @@ services:
       PYDEVD_DISABLE_FILE_VALIDATION: "1"
       PYTHONUNBUFFERED: "1"
       SEND_MAIL_RECIPIENT: ${SEND_MAIL_RECIPIENT}
-    command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
+    command:
+      ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
     restart: unless-stopped
 
   agent-office-automation-dapr:
@@ -324,20 +368,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "agent-office-automation",
-      "--app-port", "5102",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", " ",
-      "--scheduler-host-address", " ",
-      "--enable-metrics", "true",
-      "--metrics-port", "9104",
-      "--enable-profiling", "false",
-      "--log-as-json"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "agent-office-automation",
+        "--app-port",
+        "5102",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        "placement:50005",
+        "--scheduler-host-address",
+        "scheduler:50007",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9104",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
@@ -373,19 +425,28 @@ services:
       - redis
       - placement
       - scheduler
-    command: [
-      "./daprd",
-      "--app-id", "monitor",
-      "--app-port", "5199",
-      "--log-level", "${DAPR_LOG_LEVEL:-warn}",
-      "--config", "/app/docker-components/dapr-config.yaml",
-      "--resources-path", "/app/docker-components",
-      "--placement-host-address", " ",
-      "--scheduler-host-address", " ",
-      "--enable-metrics", "true",
-      "--metrics-port", "9105",
-      "--enable-profiling", "false"
-    ]
+    command:
+      [
+        "./daprd",
+        "--app-id",
+        "monitor",
+        "--app-port",
+        "5199",
+        "--log-level",
+        "${DAPR_LOG_LEVEL:-warn}",
+        "--resources-path",
+        "/app/docker-components",
+        "--placement-host-address",
+        " ",
+        "--scheduler-host-address",
+        " ",
+        "--enable-metrics",
+        "true",
+        "--metrics-port",
+        "9105",
+        "--enable-profiling",
+        "false",
+      ]
     volumes:
       - ./:/app
     restart: unless-stopped
