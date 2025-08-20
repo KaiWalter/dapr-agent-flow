@@ -206,7 +206,7 @@ services:
       - ./:/app
     restart: unless-stopped
 
-  # orchestrator-intent (services/intent_orchestrator/app.py)
+  # orchestrator-intent (services/intent_orchestrator/orchestrator)
   orchestrator-intent:
     build:
       context: .

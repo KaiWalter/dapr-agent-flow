@@ -2,7 +2,7 @@ version: 1
 
 common:
   resourcesPath: ./components
-  logLevel: warn
+  logLevel: info
   appLogDestination: file
   daprdLogDestination: file
   enableAPILogging: false
@@ -11,10 +11,10 @@ common:
     DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 
 apps:
-  # - appID: authenticator
-  #   appDirPath: ./
-  #   appPort: 5000
-  #   command: ["python", "-m", "services.ui.authenticator"]
+  - appID: authenticator
+    appDirPath: ./
+    appPort: 5000
+    command: ["python", "-m", "services.ui.authenticator"]
 
   - appID: workflows
     appDirPath: ./
@@ -29,7 +29,7 @@ apps:
     appDirPath: ./
     appPort: 5002
     env:
-      DEBUGPY_ENABLE: 0
+      DEBUGPY_ENABLE: 1
       PYDEVD_DISABLE_FILE_VALIDATION: 1
       DAPR_INTENT_ORCHESTRATOR_TOPIC: IntentOrchestrator
     command: ["python", "-m", "services.workflow.worker_voice2action"]
@@ -42,7 +42,7 @@ apps:
       DAPR_STATESTORE_NAME: workflowstatestore
       DAPR_AGENTS_REGISTRY_STORE: agentstatestore
       DAPR_BROADCAST_TOPIC: beacon_channel
-    command: ["python", "-m", "services.intent_orchestrator.app"]
+    command: ["python", "-m", "services.intent_orchestrator.orchestrator"]
 
   - appID: agent-taskplanner
     appDirPath: ./
