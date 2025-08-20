@@ -40,7 +40,7 @@ Solution layout
 - services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a Flask HTTP subscriber for Dapr pub/sub; `worker.py` publishes schedule events).
 - services/ui/: Minimal UI helpers or launchers (e.g., `services/ui/authenticator.py`). Place any CLI/UI entrypoints here if needed.
 
-- services/intent_orchestrator/ (optional): If using an intent-based orchestrator service, host it here (e.g., `app.py`). Default ports:
+- services/intent_orchestrator/ (optional): If using an intent-based orchestrator service, host it here (e.g., `orchestrator`). Default ports:
   - Orchestrator service: 5100
   - Agents (examples): 5101, 5102
 
