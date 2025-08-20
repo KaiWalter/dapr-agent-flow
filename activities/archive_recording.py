@@ -35,11 +35,3 @@ def archive_recording_local_activity(ctx, input: dict) -> dict:
     os.makedirs(archive_folder, exist_ok=True)
     move_file_to_local_archive(file_name=file_name or file_id, inbox_folder=inbox_folder, archive_folder=archive_folder)
     return {'status': 'archived', 'file_id': file_id, 'archive_folder': archive_folder}
-
-
-# Backward-compat wrapper (not used by workflow after Tier-2 switch)
-def archive_recording_activity(ctx, input: dict) -> dict:
-    # Legacy: requires explicit 'mode' to be passed in input if used
-    if input.get("mode") == "offline":
-        return archive_recording_local_activity(ctx, input)
-    return archive_recording_onedrive_activity(ctx, input)

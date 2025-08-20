@@ -14,7 +14,6 @@ from activities.onedrive_inbox import (
 from activities.transcribe_audio import transcribe_audio_activity
 from activities.publish_intent_orchestrator import publish_intent_plan_activity
 from activities.archive_recording import (
-    archive_recording_activity,  # legacy wrapper
     archive_recording_local_activity,
     archive_recording_onedrive_activity,
 )
