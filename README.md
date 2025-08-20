@@ -1,4 +1,3 @@
-
 # Dapr Agent Flow
 
 This repository explores personal productivity flows using the **Dapr Agents** framework, implementing voice-to-action workflows that automatically process voice recordings and execute appropriate actions.
@@ -72,7 +71,7 @@ MS_GRAPH_CLIENT_ID="your-client-id"
 MS_GRAPH_CLIENT_SECRET="your-client-secret"
 MS_GRAPH_AUTHORITY="https://login.microsoftonline.com/consumers"  # Default
 
-# OpenAI Configuration  
+# OpenAI Configuration
 OPENAI_API_KEY="your-openai-api-key"
 OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
 
@@ -115,7 +114,6 @@ PYDEVD_DISABLE_FILE_VALIDATION="1"          # PyCharm debugging optimization
 - If not set, the system timezone will be used as the default.
 - The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents.
 
-
 ## Quick Start
 
 ### 1. Setup Dependencies
@@ -130,10 +128,10 @@ mkdir -p ./.work/voice
 
 ### 2. Configure Environment
 
-Set up your credentials (store securely in production):
+Set up your credentials (store securely in production) in file `.env`:
 
 ```bash
-# OneDrive/Graph Configuration  
+# OneDrive/Graph Configuration
 export ONEDRIVE_VOICE_INBOX="/Recordings/Inbox"
 export MS_GRAPH_CLIENT_ID="your-azure-app-client-id"
 export MS_GRAPH_CLIENT_SECRET="your-azure-app-client-secret"
@@ -165,3 +163,22 @@ or with Docker Compose
 dapr init --slim
 ./start-docker-compose.sh
 ```
+
+> be sure to clean up with `dapr uninstall --all` when switchting between these local hosting modes.
+
+## Debugging
+
+### Redis pub/sub not triggering 
+
+How to check Redis (Dapr uses Redis Streams by default):
+
+- Open a shell in the Dapr Redis container:
+  - docker exec -it dapr_redis redis-cli
+- Inspect the stream for the topic:
+  - XINFO STREAM voice2action-schedule
+  - XRANGE voice2action-schedule - +
+- Check consumer groups (created when a subscriber registers):
+  - XINFO GROUPS voice2action-schedule
+  - If no groups listed, the subscriber wasn’t registered.
+- Inspect pending for a group (replace <group> with the app-id of the subscriber sidecar, often dapr-<app-id>):
+  - XPENDING voice2action-schedule <group>

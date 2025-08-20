@@ -38,6 +38,23 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Dapr pubsub subscription endpoint
+@app.route("/dapr/subscribe", methods=["GET"])
+def dapr_subscribe():
+    """Programmatic Dapr subscriptions for this app.
+
+    Replaces components/schedule-voice2action.yaml.
+    """
+    subs = [
+        {
+            "pubsubname": "pubsub",
+            "topic": "voice2action-schedule",
+            "route": "schedule-voice2action",
+        }
+    ]
+    logger.info("Reporting programmatic subscriptions: %s", subs)
+    return jsonify(subs)
+
+
 @app.route("/schedule-voice2action", methods=["POST"])
 def schedule_voice2action():
     logger.info("Flask handler triggered for /schedule-voice2action")
