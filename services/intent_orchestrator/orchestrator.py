@@ -16,6 +16,8 @@ if not root.handlers:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 root.setLevel(getattr(logging, level, logging.INFO))
+# Suppress werkzeug INFO logs
+logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
 async def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
@@ -25,7 +27,8 @@ async def main():
         debugpy.wait_for_client()
         
     try:
-        openai_llm = OpenAIChatClient(model="gpt-4o-mini")
+        # openai_llm = OpenAIChatClient.from_prompty("orchestrator.prompty")
+        openai_llm = OpenAIChatClient(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
         orchestrator = (
             LLMOrchestrator(
                 name="IntentOrchestrator",
