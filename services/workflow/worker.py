@@ -4,16 +4,6 @@ from time import sleep
 import logging
 import debugpy
 import os
-from dapr.ext.workflow import WorkflowRuntime, DaprWorkflowClient
-from workflows.voice2action import (
-    voice2action_poll_orchestrator,
-    voice2action_per_file_orchestrator,
-)
-from activities.onedrive_inbox import (
-    list_onedrive_inbox,
-    mark_file_pending,
-    download_onedrive_file,
-)
 
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
 
@@ -55,6 +45,8 @@ def main():
         if archive_folder:
             os.makedirs(archive_folder, exist_ok=True)
 
+    sleep(poll_interval)
+    
     try:
         with DaprClient() as d:
             while True:
