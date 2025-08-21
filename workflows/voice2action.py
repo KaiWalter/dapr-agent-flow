@@ -21,13 +21,22 @@ from activities.archive_recording import (
 logger = logging.getLogger("voice2action")
 
 
-def wf_log(ctx: DaprWorkflowContext, msg: str, *args):
+def wf_log(ctx: DaprWorkflowContext, msg: str, *args, replay_ok: bool = False):
+    """
+    Replay-safe logging for orchestrators.
+    By default, suppress logs while the orchestrator is replaying to avoid duplicate lines.
+    Set replay_ok=True to always log (rarely needed).
+    """
     try:
+        is_replaying = getattr(ctx, "is_replaying", False)
+        if is_replaying and not replay_ok:
+            return
         logger.info(msg, *args)
     except Exception as e:
         logger.error(f"Logging error: {e}")
 
 def wf_log_exception(ctx: DaprWorkflowContext, msg: str, exc: Exception):
+    # Exceptions are important even on replays; still log them
     logger.error(f"{msg}: {exc}", exc_info=True)
 
 

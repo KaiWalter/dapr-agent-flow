@@ -77,21 +77,21 @@ def on_schedule_event(event: v1.Event) -> TopicEventResponse:
         data = json.loads(raw) if isinstance(raw, str) else raw
         logger.info("Received pubsub event: %s", data)
 
-        # # Idempotency using CloudEvent ID
-        # ce_id = None
-        # try:
-        #     ce_id = event.EventID()
-        # except Exception:
-        #     pass
-        # store = StateStore()
-        # if ce_id:
-        #     key = f"schedule_event:{ce_id}"
-        #     if store.get(key):
-        #         logger.info(
-        #             "Duplicate delivery for event id=%s; already processed. Acking.", ce_id
-        #         )
-        #         sleep(0.05)
-        #         return TopicEventResponse("success")
+        # Idempotency using CloudEvent ID (at-least-once delivery)
+        ce_id = None
+        try:
+            ce_id = event.EventID()
+        except Exception:
+            pass
+        store = StateStore()
+        if ce_id:
+            key = f"schedule_event:{ce_id}"
+            if store.get(key):
+                logger.info(
+                    "Duplicate delivery for event id=%s; already processed. Acking.", ce_id
+                )
+                sleep(0.02)
+                return TopicEventResponse("success")
 
         # Schedule workflow
         wf_client = DaprWorkflowClient()
@@ -100,8 +100,8 @@ def on_schedule_event(event: v1.Event) -> TopicEventResponse:
             input=data or {},
         )
         logger.info("Scheduled poller workflow instance: %s", instance_id)
-        # if ce_id:
-        #     store.set(f"schedule_event:{ce_id}", instance_id)
+        if ce_id:
+            store.set(f"schedule_event:{ce_id}", instance_id)
         return TopicEventResponse("success")
     except Exception as e:
         logger.exception("Failed to process schedule event: %s", e)
