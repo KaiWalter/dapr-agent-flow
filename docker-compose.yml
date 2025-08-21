@@ -57,7 +57,6 @@ services:
     network_mode: "service:authenticator"
     depends_on:
       - redis
-      - placement
       - scheduler
     command:
       [
@@ -71,8 +70,6 @@ services:
         "--resources-path",
         "/app/docker-components",
         "--placement-host-address",
-        " ",
-        "--scheduler-host-address",
         " ",
         "--enable-metrics",
         "true",
@@ -115,7 +112,6 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:workflows"
     depends_on:
-      - placement
       - redis
       - scheduler
     command:
@@ -130,8 +126,6 @@ services:
         "--resources-path",
         "/app/docker-components",
         "--placement-host-address",
-        " ",
-        "--scheduler-host-address",
         " ",
         "--enable-metrics",
         "true",
@@ -242,6 +236,8 @@ services:
         "orchestrator-intent",
         "--app-port",
         "5100",
+        "--app-protocol",
+        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -300,6 +296,8 @@ services:
         "agent-taskplanner",
         "--app-port",
         "5101",
+        "--app-protocol",
+        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -363,6 +361,8 @@ services:
         "agent-office-automation",
         "--app-port",
         "5102",
+        "--app-protocol",
+        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -409,7 +409,6 @@ services:
     network_mode: "service:monitor"
     depends_on:
       - redis
-      - placement
       - scheduler
     command:
       [
@@ -425,8 +424,6 @@ services:
         "--resources-path",
         "/app/docker-components",
         "--placement-host-address",
-        " ",
-        "--scheduler-host-address",
         " ",
         "--enable-metrics",
         "true",
