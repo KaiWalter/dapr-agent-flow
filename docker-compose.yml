@@ -231,7 +231,7 @@ services:
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PYTHONUNBUFFERED: "1"
-    command: ["python", "-m", "services.intent_orchestrator.app"]
+    command: ["python", "-m", "services.intent_orchestrator.orchestrator"]
     restart: unless-stopped
 
   orchestrator-intent-dapr:

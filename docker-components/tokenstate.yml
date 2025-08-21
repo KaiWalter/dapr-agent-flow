@@ -12,3 +12,6 @@ spec:
     value: ""
   - name: keyPrefix
     value: none
+scopes:
+- authenticator
+- worker-voice2action

@@ -12,5 +12,7 @@ spec:
     value: ""
   - name: keyPrefix
     value: none
-  - name: actorStateStore
-    value: "true"
+scopes:
+- orchestrator-intent
+- agent-taskplanner
+- agent-office-automation

@@ -10,3 +10,10 @@ spec:
     value: redis:6379
   - name: redisPassword
     value: ""
+  - name: actorStateStore
+    value: "true"
+scopes:
+- worker-voice2action
+- orchestrator-intent
+- agent-taskplanner
+- agent-office-automation    
