@@ -14,11 +14,13 @@ apps:
   - appID: authenticator
     appDirPath: ./
     appPort: 5000
+    placementHostAddress: ""
     command: ["python", "-m", "services.ui.authenticator"]
 
   - appID: workflows
     appDirPath: ./
     appPort: 5001
+    placementHostAddress: ""
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
@@ -28,30 +30,24 @@ apps:
   - appID: worker-voice2action
     appDirPath: ./
     appPort: 5002
+    appProtocol: grpc
     env:
-      DEBUGPY_ENABLE: 1
+      DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
-      DAPR_INTENT_ORCHESTRATOR_TOPIC: IntentOrchestrator
     command: ["python", "-m", "services.workflow.worker_voice2action"]
 
   - appID: orchestrator-intent
     appDirPath: ./
     appPort: 5100
     env:
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
+      DEBUGPY_ENABLE: 0
+      PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.orchestrator"]
 
   - appID: agent-taskplanner
     appDirPath: ./
     appPort: 5101
     env:
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
@@ -60,10 +56,6 @@ apps:
     appDirPath: ./
     appPort: 5102
     env:
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_STATESTORE_NAME: workflowstatestore
-      DAPR_AGENTS_REGISTRY_STORE: agentstatestore
-      DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
@@ -71,11 +63,11 @@ apps:
   - appID: monitor
     appDirPath: ./
     appPort: 5199
+    appProtocol: grpc
     appLogDestination: console
     logLevel: info
+    placementHostAddress: ""
     env:
-      DAPR_PUBSUB_NAME: pubsub
-      DAPR_BROADCAST_TOPIC: beacon_channel
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.ui.monitor"]
@@ -83,6 +75,7 @@ apps:
   # - appID: web-monitor
   #   appDirPath: ./
   #   appPort: 5200
+  #   placementHostAddress: ""
   #   env:
   #     DAPR_PUBSUB_NAME: pubsub
   #     DAPR_BROADCAST_TOPIC: beacon_channel

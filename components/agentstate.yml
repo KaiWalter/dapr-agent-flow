@@ -3,14 +3,14 @@ kind: Component
 metadata:
   name: agentstatestore
 spec:
-  type: state.redis
+  type: state.sqlite
   version: v1
   metadata:
-  - name: redisHost
-    value: localhost:6379
-  - name: redisPassword
-    value: ""
+  - name: connectionString
+    value: "./.data/agentstatestore.db"
   - name: keyPrefix
     value: none
-  - name: actorStateStore
-    value: "true"
+scopes:
+- orchestrator-intent
+- agent-taskplanner
+- agent-office-automation

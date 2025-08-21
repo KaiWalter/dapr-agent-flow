@@ -3,10 +3,15 @@ kind: Component
 metadata:
   name: workflowstatestore
 spec:
-  type: state.redis
+  type: state.sqlite
   version: v1
   metadata:
-  - name: redisHost
-    value: localhost:6379
-  - name: redisPassword
-    value: ""
+  - name: connectionString
+    value: "./.data/workflowstatestore.db"
+  - name: actorStateStore
+    value: "true"
+scopes:
+- worker-voice2action
+- orchestrator-intent
+- agent-taskplanner
+- agent-office-automation

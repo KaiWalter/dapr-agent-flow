@@ -16,9 +16,9 @@ for folder in "${folders[@]}"; do
 	fi
 done
 
-# remove file markers from REDIS
-redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL
-redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL
+# # remove file markers from REDIS
+# redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL
+# redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL
 
 # activate virtualenv only if not already in .venv
 if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; then

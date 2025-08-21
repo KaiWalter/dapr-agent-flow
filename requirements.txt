@@ -1,6 +1,9 @@
 dapr-agents>=0.8.2
 dapr-ext-workflow==1.16.0rc1
+dapr-ext-fastapi==1.16.0rc1
+dapr-ext-grpc==1.16.0rc1
 dapr==1.16.0rc1
+dapr-ext-grpc==1.16.0rc1
 debugpy>=1.8.0
 flask>=2.3.0
 msal>=1.23.0
@@ -8,3 +11,4 @@ pydantic>=2.6.0
 python-dotenv>=1.0.1
 requests>=2.32.0
 tzlocal>=5.0.0
+cloudevents>=1.9.0

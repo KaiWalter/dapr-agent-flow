@@ -4,6 +4,7 @@ Pub/Sub and Service Invocation Convention
 - Always use `DaprClient` (from `dapr.clients`) to publish events to pub/sub topics or make service invocations.
 - Do NOT use `requests` or direct HTTP calls to the Dapr API for these operations.
 - `DaprClient` will automatically wrap your data in a CloudEvent envelope for pub/sub.
+- For subscribers, prefer Dapr gRPC App subscriptions using `dapr.ext.grpc.App` with `@app.subscribe(...)` and return `TopicEventResponse('success'|'retry')` to control ack/retry. Avoid HTTP route subscribers for new code.
 - At the top-level entrypoint of every app (orchestrator, agent, worker, etc.), ensure the root logger is configured so all module loggers emit to console. Use this pattern:
 
 Logging convention for all root modules:
@@ -38,6 +39,7 @@ Solution layout
 - services/: Thin adapters to external APIs (Graph, Gmail, Notion, http client, storage, etc.).
   - Group capabilities by module: one capability per file (e.g., `services/onedrive.py`, `services/state_store.py`, `services/http_client.py`). Keep these stateless.
 - services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a Flask HTTP subscriber for Dapr pub/sub; `worker.py` publishes schedule events).
+- services/workflow/: Workflow runtime and supporting publisher/subscriber apps (e.g., `worker_voice2action.py` hosts WorkflowRuntime and a gRPC App subscriber for Dapr pub/sub via `dapr.ext.grpc.App`; `worker.py` publishes schedule events).
 - services/ui/: Minimal UI helpers or launchers (e.g., `services/ui/authenticator.py`). Place any CLI/UI entrypoints here if needed.
 
 - services/intent_orchestrator/ (optional): If using an intent-based orchestrator service, host it here (e.g., `orchestrator`). Default ports:
@@ -46,6 +48,7 @@ Solution layout
 
 Port configuration for Dapr apps
 - All applications should use the standard Dapr environment variable `DAPR_APP_PORT` for their port configuration. Do not use custom environment variables like `INTENT_ORCH_PORT` or `OFFICE_AUTOMATION_PORT`.
+- For gRPC App subscribers, set `appProtocol: grpc` for the app in `master.yaml` so Dapr delivers pub/sub events over gRPC.
 
 Signal handler workaround for FastAPI-based orchestrators/agents:
 - For any FastAPI-based orchestrator or agent (using dapr-agents or similar), patch the `.stop()` method on the service/agent instance and its class to be an async function that returns None, before calling `.start()`. This prevents shutdown errors from signal handlers expecting a coroutine. Example:
@@ -141,7 +144,15 @@ Local multi-app run (Dapr)
   - `dapr run -f ./master.yaml` (includes `resourcesPath: ./components`). Orchestrator on 5100; agents on 5101/5102.
 - Ensure the state store component sets `actorStateStore: true` so workflows/actors persist state.
 - All services/workers/workflows reuse the common `components/` manifests.
-- Pub/Sub: The workflow app exposes a Flask subscriber at `/schedule-voice2action` matching the configured topic (e.g., `voice2action-schedule`).
+- Pub/Sub: The workflow worker uses a gRPC App subscriber (`@app.subscribe(pubsub_name='pubsub', topic='voice2action-schedule')`) and returns `TopicEventResponse('success')` on success, or `'retry'` to trigger redelivery.
+- Ensure the `worker-voice2action` app has `appProtocol: grpc` in `master.yaml` and listens on `DAPR_APP_PORT`.
+
+Subscriber implementation details (preferred)
+- Use `dapr.ext.grpc.App` and `@app.subscribe(pubsub_name, topic)` for subscriptions.
+- Parse payloads as JSON where `content_type` is `application/json`.
+- Return `TopicEventResponse('success')` to ack, or `'retry'` to request redelivery.
+- Implement idempotency by caching processed CloudEvent IDs in the Dapr state store (e.g., key `schedule_event:<cloudevent-id>`), especially for at-least-once delivery with Redis.
+- Example reference: see `services/workflow/worker_voice2action.py`.
 
 Secrets and configuration
 - Do not embed secrets in code. Use a Dapr secret store and environment variables; activities read configuration via env and resolve secrets via Dapr if needed.
