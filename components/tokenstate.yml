@@ -6,10 +6,11 @@ spec:
   type: state.sqlite
   version: v1
   metadata:
-  - name: connectionString
-    value: "./.data/tokenstatestore.db"
-  - name: keyPrefix
-    value: none
+    - name: connectionString
+      value: "./.data/tokenstatestore.db"
+    - name: keyPrefix
+      value: none
 scopes:
-- authenticator
-- worker-voice2action
+  - authenticator
+  - worker-voice2action
+  - agent-office-automation
