@@ -96,6 +96,16 @@ async def main():
             )
             .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))
         )
+        # Patch stop() to be a coroutine accepting arbitrary args to avoid signal handler TypeError
+        async def stop_ignore_args(*args, **kwargs):
+            return None
+        try:
+            agent.stop = stop_ignore_args  # type: ignore[assignment]
+            # Also patch the class method so internal references use the same signature
+            agent.__class__.stop = stop_ignore_args  # type: ignore[assignment]
+        except Exception:
+            pass
+
         await agent.start()
     except Exception as e:
         logging.exception("Error starting OfficeAutomation agent: %s", e)

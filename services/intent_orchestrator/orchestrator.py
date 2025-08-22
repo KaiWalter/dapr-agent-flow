@@ -41,9 +41,17 @@ async def main():
                 agents_registry_key="agents_registry",
                 orchestrator_topic_name=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "IntentOrchestrator"),
                 broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-                max_iterations=int(os.getenv("INTENT_ORCH_MAX_ITERATIONS", "3")),
+                max_iterations=int(os.getenv("INTENT_ORCH_MAX_ITERATIONS", "6")),
             ).as_service(port=int(os.getenv("DAPR_APP_PORT", "5100")))
         )
+        # Patch stop() to be a coroutine accepting arbitrary args to avoid signal handler TypeError
+        async def stop_ignore_args(*args, **kwargs):
+            return None
+        try:
+            orchestrator.stop = stop_ignore_args  # type: ignore[assignment]
+            orchestrator.__class__.stop = stop_ignore_args  # type: ignore[assignment]
+        except Exception:
+            pass
 
         await orchestrator.start()
     except Exception as e:
