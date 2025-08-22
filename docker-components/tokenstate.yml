@@ -13,5 +13,6 @@ spec:
   - name: keyPrefix
     value: none
 scopes:
-- authenticator
-- worker-voice2action
+  - authenticator
+  - worker-voice2action
+  - agent-office-automation

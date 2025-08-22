@@ -181,6 +181,7 @@ services:
         "5002",
         "--app-protocol",
         "grpc",
+        "--enable-app-health-check",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -236,8 +237,6 @@ services:
         "orchestrator-intent",
         "--app-port",
         "5100",
-        "--app-protocol",
-        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -296,8 +295,6 @@ services:
         "agent-taskplanner",
         "--app-port",
         "5101",
-        "--app-protocol",
-        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -361,8 +358,6 @@ services:
         "agent-office-automation",
         "--app-port",
         "5102",
-        "--app-protocol",
-        "grpc",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -382,43 +377,36 @@ services:
       - ./:/app
     restart: unless-stopped
 
-  # monitor (services/ui/monitor.py)
-  monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile.python-base
-    image: dapr-agent-flow/python-base:local
-    networks:
-      - agent-flows
+  # monitor (services/ui/web_monitor/server.js)
+  web-monitor:
+    image: node:20-alpine
     working_dir: /app
     volumes:
       - ./:/app
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
-      DAPR_APP_PORT: "5199"
-      DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
-      DEBUGPY_ENABLE: "0"
-      LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
-      PYDEVD_DISABLE_FILE_VALIDATION: "1"
-      PYTHONUNBUFFERED: "1"
-    command: ["python", "-m", "services.ui.monitor"]
+      NODE_ENV: development
+      DAPR_APP_PORT: "5200"
+    command: ["node", "services/ui/web_monitor/server.js"]
+    ports:
+      - "5200:5200"
+    networks:
+      - agent-flows
     restart: unless-stopped
 
-  monitor-dapr:
+  web-monitor-dapr:
     image: daprio/daprd:1.16.0-rc.3
-    network_mode: "service:monitor"
+    network_mode: "service:web-monitor"
     depends_on:
-      - redis
       - scheduler
     command:
       [
         "./daprd",
         "--app-id",
-        "monitor",
+        "web-monitor",
         "--app-port",
-        "5199",
+        "5200",
         "--app-protocol",
-        "grpc",
+        "http",
         "--log-level",
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
@@ -428,7 +416,7 @@ services:
         "--enable-metrics",
         "true",
         "--metrics-port",
-        "9105",
+        "9107",
         "--enable-profiling",
         "false",
       ]
