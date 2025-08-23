@@ -3,10 +3,29 @@ kind: Component
 metadata:
   name: pubsub
 spec:
-  type: pubsub.redis
+  type: pubsub.rabbitmq
   version: v1
   metadata:
-  - name: redisHost
-    value: redis:6379
-  - name: redisPassword
-    value: ""
+    - name: protocol
+      value: amqp  
+    - name: hostname
+      value: rabbitmq
+    - name: username
+      secretKeyRef:
+        name: MQUSERNAME
+        key: MQUSERNAME
+    - name: password
+      secretKeyRef:
+        name: MQPASSWORD
+        key: MQPASSWORD
+    - name: prefetchCount
+      value: "1"
+auth:
+  secretStore: envvar-secret-store
+scopes:
+- workflows
+- worker-voice2action
+- orchestrator-intent
+- agent-task-planner
+- agent-office-automation
+- web-monitor

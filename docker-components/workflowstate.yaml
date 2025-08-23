@@ -3,17 +3,19 @@ kind: Component
 metadata:
   name: workflowstatestore
 spec:
-  type: state.redis
-  version: v1
+  type: state.postgresql
+  version: v2
   metadata:
-  - name: redisHost
-    value: redis:6379
-  - name: redisPassword
-    value: ""
+  - name: connectionString
+    secretKeyRef:
+      name: DBCONNECTION
+      key: DBCONNECTION
   - name: actorStateStore
     value: "true"
+auth:
+  secretStore: envvar-secret-store
 scopes:
 - worker-voice2action
 - orchestrator-intent
-- agent-taskplanner
+- agent-task-planner
 - agent-office-automation    

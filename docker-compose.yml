@@ -1,13 +1,45 @@
 services:
-  # Infra: Redis for pubsub/state used by ./components/*.yaml (redisHost: localhost:6379)
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+  # Infra: RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MQUSERNAME:-agent}
+      RABBITMQ_DEFAULT_PASS: ${MQPASSWORD:-agentpass}
+    volumes:
+      - ./.data/mq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
     networks:
       - agent-flows
-    restart: unless-stopped
+
+  # Infra: PostgreSQL state store
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: agentflow
+      POSTGRES_USER: ${DBUSERNAME:-agent}
+      POSTGRES_PASSWORD: ${DBPASSWORD:-agentpass}
     volumes:
-      - redis-data:/data
+      - ./.data/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - agent-flows
 
   # Infra: Dapr placement service (required for workflows/actors)
   placement:
@@ -56,8 +88,14 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:authenticator"
     depends_on:
-      - redis
-      - scheduler
+      postgres:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -112,8 +150,16 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:workflows"
     depends_on:
-      - redis
-      - scheduler
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -169,9 +215,18 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:worker-voice2action"
     depends_on:
-      - redis
-      - placement
-      - scheduler
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -227,9 +282,18 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:orchestrator-intent"
     depends_on:
-      - redis
-      - placement
-      - scheduler
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -256,8 +320,8 @@ services:
       - ./:/app
     restart: unless-stopped
 
-  # agent-taskplanner (services/intent_orchestrator/agent_tasker.py)
-  agent-taskplanner:
+  # agent-task-planner (services/intent_orchestrator/agent_tasker.py)
+  agent-task-planner:
     build:
       context: .
       dockerfile: Dockerfile.python-base
@@ -281,18 +345,27 @@ services:
     command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
     restart: unless-stopped
 
-  agent-taskplanner-dapr:
+  agent-task-planner-dapr:
     image: daprio/daprd:1.16.0-rc.3
-    network_mode: "service:agent-taskplanner"
+    network_mode: "service:agent-task-planner"
     depends_on:
-      - redis
-      - placement
-      - scheduler
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
         "--app-id",
-        "agent-taskplanner",
+        "agent-task-planner",
         "--app-port",
         "5101",
         "--log-level",
@@ -348,9 +421,18 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:agent-office-automation"
     depends_on:
-      - redis
-      - placement
-      - scheduler
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      placement:
+        condition: service_started
+      scheduler:
+        condition: service_started
+    environment:
+      DBCONNECTION: ${DBCONNECTION}
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -397,7 +479,13 @@ services:
     image: daprio/daprd:1.16.0-rc.3
     network_mode: "service:web-monitor"
     depends_on:
-      - scheduler
+      rabbitmq:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+    environment:
+      MQUSERNAME: ${MQUSERNAME}
+      MQPASSWORD: ${MQPASSWORD}
     command:
       [
         "./daprd",
@@ -425,7 +513,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  redis-data: {}
   dapr-etcd-data: {}
   work: {}
 
