@@ -57,62 +57,69 @@ Folder **models** contains common model definitions used by the workflow element
 
 ## Environment Configuration
 
-### Required Environment Variables
+### Environment Variable Cross Reference
 
-```bash
+The following table shows which environment variables are used by which Python and Node.js applications, and the corresponding Docker Compose service name.
 
-# OneDrive Configuration
-ONEDRIVE_VOICE_INBOX="/folder/sub-folder"    # OneDrive folder path to monitor
-ONEDRIVE_VOICE_POLL_INTERVAL=30              # Polling interval in seconds (min: 5)
-ONEDRIVE_VOICE_ARCHIVE="/folder/archive-folder"  # OneDrive folder path to archive processed recordings (required)
+| Environment Variable           | Application (Entrypoint)                        | Docker Compose Service         |
+|-------------------------------|-------------------------------------------------|-------------------------------|
+| DAPR_APP_PORT                 | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
+| DAPR_LOG_LEVEL                | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
+| DAPR_API_MAX_RETRIES          | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
+| DAPR_AGENTS_STATE_DIR         | All Python apps                                 | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| MS_GRAPH_AUTHORITY            | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
+| MS_GRAPH_CLIENT_ID            | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
+| MS_GRAPH_CLIENT_SECRET        | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
+| ONEDRIVE_VOICE_INBOX          | workflows (worker.py)                           | workflows                     |
+| ONEDRIVE_VOICE_ARCHIVE        | workflows (worker.py)                           | workflows                     |
+| ONEDRIVE_VOICE_POLL_INTERVAL  | workflows (worker.py)                           | workflows                     |
+| LOCAL_VOICE_DOWNLOAD_FOLDER   | workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation | workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| LOCAL_VOICE_INBOX             | workflows (worker.py)                           | workflows                     |
+| LOCAL_VOICE_ARCHIVE           | workflows (worker.py)                           | workflows                     |
+| OFFLINE_MODE                  | workflows (worker.py)                           | workflows                     |
+| DEBUGPY_ENABLE                | workflows, worker-voice2action, agent-task-planner | workflows, worker-voice2action, agent-task-planner |
+| PYDEVD_DISABLE_FILE_VALIDATION| worker-voice2action, agent-task-planner, agent-office-automation | worker-voice2action, agent-task-planner, agent-office-automation |
+| PYTHONUNBUFFERED              | All Python apps                                 | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| OPENAI_API_KEY                | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| OFFICE_TIMEZONE               | agent-task-planner                              | agent-task-planner            |
+| SEND_MAIL_RECIPIENT           | agent-office-automation                         | agent-office-automation       |
+| CREATE_TASK_WEBHOOK_URL       | agent-office-automation                         | agent-office-automation       |
 
-# MS Graph Authentication (MSAL Client Credentials)
-MS_GRAPH_CLIENT_ID="your-client-id"
-MS_GRAPH_CLIENT_SECRET="your-client-secret"
-MS_GRAPH_AUTHORITY="https://login.microsoftonline.com/consumers"  # Default
+> **Note:**  
+> - All Dapr-enabled applications use `DAPR_APP_PORT`, `DAPR_LOG_LEVEL`, and `DAPR_API_MAX_RETRIES`.
+> - Some variables (e.g., `MS_GRAPH_*`, `OPENAI_API_KEY`) are only required for specific capabilities.
 
-# OpenAI Configuration
-OPENAI_API_KEY="your-openai-api-key"
-OPENAI_CLASSIFICATION_MODEL="gpt-4.1-mini"    # Default model for classification
+## Required Environment Variables
 
-# Local Storage
-LOCAL_VOICE_DOWNLOAD_FOLDER="./.work/voice"       # Local directory for downloads
+| Environment Variable           | Default Value                                 | Purpose                                                                                 |
+|-------------------------------|-----------------------------------------------|-----------------------------------------------------------------------------------------|
+| ONEDRIVE_VOICE_INBOX          | (none)                                       | OneDrive folder path to monitor for new recordings                                      |
+| ONEDRIVE_VOICE_POLL_INTERVAL  | 30                                           | Polling interval in seconds (min: 5)                                                    |
+| ONEDRIVE_VOICE_ARCHIVE        | (none)                                       | OneDrive folder path to archive processed recordings                                    |
+| MS_GRAPH_CLIENT_ID            | (none)                                       | Azure AD application client ID for MS Graph                                             |
+| MS_GRAPH_CLIENT_SECRET        | (none)                                       | Azure AD application client secret for MS Graph                                         |
+| MS_GRAPH_AUTHORITY            | https://login.microsoftonline.com/consumers   | Azure AD authority endpoint for MS Graph                                                |
+| OPENAI_API_KEY                | (none)                                       | OpenAI API key for transcription/classification                                         |
+| OPENAI_CLASSIFICATION_MODEL   | gpt-4.1-mini                                 | Default model for classification                                                        |
+| LOCAL_VOICE_DOWNLOAD_FOLDER   | ./.work/voice                                | Local directory for downloads                                                           |
+| SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails (FR007)                                               |
+| CREATE_TASK_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks (FR008)                                           |
 
-# Email
-SEND_MAIL_RECIPIENT="you@example.com"      # Recipient for all outgoing emails (FR007)
+## Optional Environment Variables
 
-# Tasks (Webhook)
-CREATE_TASK_WEBHOOK_URL="https://your.task.endpoint/ingest"  # Target webhook for creating tasks (FR008)
-```
-
-### Optional Environment Variables
-
-```bash
-# Dapr Configuration
-STATE_STORE_NAME="workflowstatestore"                # Dapr state store component name
-DAPR_PUBSUB_NAME="pubsub"                   # Dapr pub/sub component name
-DAPR_LOG_LEVEL="info"                       # Logging level
-
-# Intent Orchestrator Topic
-DAPR_INTENT_ORCHESTRATOR_TOPIC="IntentOrchestrator"  # Pub/sub topic for intent orchestrator
-# Token Cache State Store (MSAL)
-TOKEN_STATE_STORE_NAME="tokenstatestore"     # Dapr state store component name for token cache
-
-# Offline Mode (FR009)
-OFFLINE_MODE="false"                        # Set to "true" to use local inbox/archive instead of OneDrive
-LOCAL_VOICE_INBOX="./local_voice_inbox"     # Local folder for incoming audio files (used if OFFLINE_MODE=true)
-LOCAL_VOICE_ARCHIVE="./local_voice_archive" # Local folder for archiving processed files (used if OFFLINE_MODE=true)
-
-# Development/Debugging
-DEBUGPY_ENABLE="0"                          # Enable remote debugging (1/0)
-PYDEVD_DISABLE_FILE_VALIDATION="1"          # PyCharm debugging optimization
-```
-
-`OFFICE_TIMEZONE` (optional):
-
-- Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).
-- If not set, the system timezone will be used as the default.
-- The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents.
+| Environment Variable           | Default Value                                 | Purpose                                                                                 |
+|-------------------------------|-----------------------------------------------|-----------------------------------------------------------------------------------------|
+| STATE_STORE_NAME               | workflowstatestore                           | Dapr state store component name for workflow/actor state                                |
+| DAPR_PUBSUB_NAME               | pubsub                                       | Dapr pub/sub component name                                                             |
+| DAPR_LOG_LEVEL                 | info                                         | Logging level                                                                           |
+| DAPR_API_MAX_RETRIES           | (none)                                       | Max retries for Dapr API calls (if supported by SDK/app)                                |
+| DAPR_INTENT_ORCHESTRATOR_TOPIC | IntentOrchestrator                           | Pub/sub topic for intent orchestrator                                                   |
+| TOKEN_STATE_STORE_NAME         | tokenstatestore                              | Dapr state store component name for token cache                                         |
+| OFFLINE_MODE                   | false                                        | Use local inbox/archive instead of OneDrive (FR009)                                     |
+| LOCAL_VOICE_INBOX              | ./local_voice_inbox                          | Local folder for incoming audio files (used if OFFLINE_MODE=true)                       |
+| LOCAL_VOICE_ARCHIVE            | ./local_voice_archive                        | Local folder for archiving processed files (used if OFFLINE_MODE=true)                  |
+| DEBUGPY_ENABLE                 | 0                                            | Enable remote debugging (1/0)                                                           |
+| OFFICE_TIMEZONE                | (system timezone)                            | Target timezone for scheduling/time operations (used by Tasker agent only).<br/>Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).<br/>If not set, the system timezone will be used as the default.<br/>The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents. |
 
 ## Quick Start
 

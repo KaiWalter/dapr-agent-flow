@@ -77,6 +77,7 @@ services:
       DAPR_AGENTS_STATE_DIR: "./.dapr_state"
       DAPR_APP_PORT: "5000"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
@@ -133,9 +134,9 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
       DAPR_APP_PORT: "5001"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DEBUGPY_ENABLE: "0"
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       ONEDRIVE_VOICE_ARCHIVE: ${ONEDRIVE_VOICE_ARCHIVE}
@@ -197,9 +198,9 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
       DAPR_APP_PORT: "5002"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DEBUGPY_ENABLE: "0"
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
@@ -269,9 +270,10 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5100"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PYTHONUNBUFFERED: "1"
@@ -333,9 +335,10 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5101"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DEBUGPY_ENABLE: "0"
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       OFFICE_TIMEZONE: ${OFFICE_TIMEZONE}
@@ -401,9 +404,10 @@ services:
       - work:/.work
     environment:
       CREATE_TASK_WEBHOOK_URL: ${CREATE_TASK_WEBHOOK_URL}
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
+      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5102"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DEBUGPY_ENABLE: "0"
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       MS_GRAPH_AUTHORITY: ${MS_GRAPH_AUTHORITY:-https://login.microsoftonline.com/consumers}
@@ -468,6 +472,7 @@ services:
     environment:
       NODE_ENV: development
       DAPR_APP_PORT: "5200"
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
     command: ["node", "services/ui/web_monitor/server.js"]
     ports:
       - "5200:5200"
