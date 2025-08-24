@@ -49,8 +49,8 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
 
 
 @tool(args_model=CreateTaskArgs)
-def create_task(title: str, due_date: Optional[str] = None, reminder: Optional[str] = None, notes: Optional[str] = None) -> str:
-    """Create a task via webhook (FR008)."""
+def create_todo_item(title: str, due_date: Optional[str] = None, reminder: Optional[str] = None, notes: Optional[str] = None) -> str:
+    """Create a to-do item via webhook (FR008)."""
     try:
         _ = task_webhook.create_task(title=title, due=due_date, reminder=reminder)
         return "Task created"
@@ -71,18 +71,18 @@ async def main():
             DurableAgent(
                 name="OfficeAutomation",
                 role="Office Assistant",
-                goal="Handle all jobs that require interaction with personal productivity like sending emails or creating to-do tasks.",
+                goal="Handle all jobs that require interaction with personal productivity tools like sending emails or creating to-do items.",
                 instructions=[
                     "From the users intent or actionable items you provide those tools which help to conclude the process.",
-                    "Synonomous to create task can be: follow up, to-do, todo, task, create to-do, create todo.",
+                    "Synonomous to create a to-do item in the user's intent can be: follow up, create a task.",
                     "Available tools and arguments:",
-                    "- create_task(title: string, due_date?: ISO8601 date time string, reminder?: ISO8601 date time string, notes?: string)",
+                    "- create_todo_item(title: string, due_date?: ISO8601 date time string, reminder?: ISO8601 date time string, notes?: string)",
                     "- send_email(subject?: string, body?: string)",
-                    "All date time string information needs to be converted into ISO8601 format. Consider the following:",
+                    "All date time information needs to be converted into ISO8601 format. Consider the following:",
                     "- when no time is specified, use the start of the business day (06:00:00) as default",
                     "- add timezone offset to the date time string, e.g., Z or +00:00",
                 ],
-                tools=[send_email, create_task],
+                tools=[send_email, create_todo_item],
                 local_state_path="./.dapr_state",
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
                 state_store_name=os.getenv(

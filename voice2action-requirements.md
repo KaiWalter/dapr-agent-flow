@@ -51,11 +51,11 @@
 	- This logic is implemented in the Office Automation agent.
 	- relevant: `TR001`
 
-- **FR008**: Create task
-	- Tasks need to be created in a space outside personal MS Graph/Outlook/OneDrive domain.
-	- Hence to create a task a HTTP POST webhook is to be called.
+- **FR008**: Create to-do item
+	- To-do items need to be created in a space outside personal MS Graph/Outlook/OneDrive domain.
+	- Hence to create a to-do item a HTTP POST webhook is to be called.
 	- This logic is implemented in the Office Automation agent.
-	- Take the target URL from the environment variable `CREATE_TASK_WEBHOOK_URL`.
+	- Take the target URL from the environment variable `CREATE_TODO_ITEM_WEBHOOK_URL`.
 	- POST body needs to have exactly below structure with optional due and reminder:
 
 ```json

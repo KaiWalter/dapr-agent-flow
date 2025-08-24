@@ -115,10 +115,11 @@ async def main():
             DurableAgent(
                 name="TaskPlanner",
                 role="Planner",
-                goal= "Handle and provide all kind of input information e.g. voice recording transcript and provide additional reference information which are helpful to the process.",
+                goal= "Provide all kind of input information e.g. voice recording transcript and provide additional reference information which are helpful to the process.",
                 instructions=[
-                    "Provide utility to the process and none of your actions are to be considered to conclude the process.",
-                    "Add timezone and timezone offset information to the process dates are handled e.g. due dates, reminders.",
+                    "You are an agent in a multi-step process."
+                    "You provide utility to the process and none of your actions are to be considered to conclude the process.",
+                    "You add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.",
                     "Available tools and arguments:",
                     "- read_transcription(transcription_path: string)",
                     "- get_office_timezone()",

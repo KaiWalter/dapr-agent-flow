@@ -83,7 +83,7 @@ The following table shows which environment variables are used by which Python a
 | OPENAI_API_KEY                | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
 | OFFICE_TIMEZONE               | agent-task-planner                              | agent-task-planner            |
 | SEND_MAIL_RECIPIENT           | agent-office-automation                         | agent-office-automation       |
-| CREATE_TASK_WEBHOOK_URL       | agent-office-automation                         | agent-office-automation       |
+| CREATE_TODO_ITEM_WEBHOOK_URL       | agent-office-automation                         | agent-office-automation       |
 
 > **Note:**  
 > - All Dapr-enabled applications use `DAPR_APP_PORT`, `DAPR_LOG_LEVEL`, and `DAPR_API_MAX_RETRIES`.
@@ -103,7 +103,7 @@ The following table shows which environment variables are used by which Python a
 | OPENAI_CLASSIFICATION_MODEL   | gpt-4.1-mini                                 | Default model for classification                                                        |
 | LOCAL_VOICE_DOWNLOAD_FOLDER   | ./.work/voice                                | Local directory for downloads                                                           |
 | SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails (FR007)                                               |
-| CREATE_TASK_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks (FR008)                                           |
+| CREATE_TODO_ITEM_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks (FR008)                                           |
 | TRANSCRIPTION_TERMS_FILE      | (none)                                       | Optional path to a text file with one term per line to bias transcription (FR002)       |
 
 ## Optional Environment Variables

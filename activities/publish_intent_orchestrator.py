@@ -26,11 +26,12 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
-        "task": f"Process voice transcription from [{input.get('transcription_path')}]. "
+        "task": f"Process voice transcription from file [{input.get('transcription_path')}]. "
                 f"Text inside [...] is a file path — preserve it exactly."
-                f"From the first two sentences, extract the user’s intent and propose next steps. "
+                f"From the first two sentences, extract the user’s intent to plan steps. "
                 f"Treat the rest of the transcription as a note with no further intent. "
-                f"Possible explicit intent: create a task. "
+                f"Do not infer any intent that is not explicitly stated. "
+                f"Possible explicit intent: create a todo. "
                 f"If no intent is found, send an email containing the full transcript.",
         "workflow_instance_id": input.get("correlation_id"),
     }

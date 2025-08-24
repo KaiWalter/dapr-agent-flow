@@ -12,15 +12,15 @@ def create_task(title: str, due: Optional[str] = None, reminder: Optional[str] =
     """
     Create a task by invoking an external webhook (FR008).
 
-    Uses environment variable CREATE_TASK_WEBHOOK_URL and POSTs exactly:
+    Uses environment variable CREATE_TODO_ITEM_WEBHOOK_URL and POSTs exactly:
       { "title": str, "due"?: str, "reminder"?: str }
 
     Returns the parsed JSON response if available; otherwise returns a minimal ack dict.
     Raises requests-related exceptions for non-2xx responses.
     """
-    url = os.getenv("CREATE_TASK_WEBHOOK_URL")
+    url = os.getenv("CREATE_TODO_ITEM_WEBHOOK_URL")
     if not url:
-        raise ValueError("CREATE_TASK_WEBHOOK_URL is not set")
+        raise ValueError("CREATE_TODO_ITEM_WEBHOOK_URL is not set")
 
     payload: Dict[str, Any] = {"title": title}
     if due:

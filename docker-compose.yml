@@ -404,7 +404,7 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      CREATE_TASK_WEBHOOK_URL: ${CREATE_TASK_WEBHOOK_URL}
+      CREATE_TODO_ITEM_WEBHOOK_URL: ${CREATE_TODO_ITEM_WEBHOOK_URL}
       DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5102"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
