@@ -104,6 +104,7 @@ The following table shows which environment variables are used by which Python a
 | LOCAL_VOICE_DOWNLOAD_FOLDER   | ./.work/voice                                | Local directory for downloads                                                           |
 | SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails (FR007)                                               |
 | CREATE_TASK_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks (FR008)                                           |
+| TRANSCRIPTION_TERMS_FILE      | (none)                                       | Optional path to a text file with one term per line to bias transcription (FR002)       |
 
 ## Optional Environment Variables
 
@@ -118,8 +119,20 @@ The following table shows which environment variables are used by which Python a
 | OFFLINE_MODE                   | false                                        | Use local inbox/archive instead of OneDrive (FR009)                                     |
 | LOCAL_VOICE_INBOX              | ./local_voice_inbox                          | Local folder for incoming audio files (used if OFFLINE_MODE=true)                       |
 | LOCAL_VOICE_ARCHIVE            | ./local_voice_archive                        | Local folder for archiving processed files (used if OFFLINE_MODE=true)                  |
-| DEBUGPY_ENABLE                 | 0                                            | Enable remote debugging (1/0)                                                           |
 | OFFICE_TIMEZONE                | (system timezone)                            | Target timezone for scheduling/time operations (used by Tasker agent only).<br/>Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).<br/>If not set, the system timezone will be used as the default.<br/>The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents. |
+
+### Common Terms for Transcription (FR002)
+
+You can improve transcription accuracy by providing a list of domain-specific terms.
+
+- Create a UTF-8 text file with one term per line. Blank lines and lines starting with `#` are ignored.
+- Set `TRANSCRIPTION_TERMS_FILE` to the absolute path of this file. Example:
+
+```bash
+export TRANSCRIPTION_TERMS_FILE="$PWD/config/transcription_terms.txt"
+```
+
+The workflow will pass these terms to the OpenAI Whisper API as a biasing prompt.
 
 ## Quick Start
 

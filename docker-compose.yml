@@ -134,9 +134,9 @@ services:
       - ./:/app
       - work:/.work
     environment:
+      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DAPR_APP_PORT: "5001"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
-      DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
       DEBUGPY_ENABLE: "0"
       LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
       ONEDRIVE_VOICE_ARCHIVE: ${ONEDRIVE_VOICE_ARCHIVE}
@@ -144,6 +144,7 @@ services:
       ONEDRIVE_VOICE_POLL_INTERVAL: "60"
       PYDEVD_DISABLE_FILE_VALIDATION: "1"
       PYTHONUNBUFFERED: "1"
+      TRANSCRIPTION_TERMS_FILE: /app/.common_terms.txt
     command: ["python", "-m", "services.workflow.worker"]
     restart: unless-stopped
 

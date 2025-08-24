@@ -15,6 +15,8 @@ class ClassificationResult(BaseModel):
 class TranscriptionRequest(BaseModel):
     audio_path: str
     mime_type: str = 'audio/mpeg'  # default, can be audio/x-wav
+    # Optional prompt to bias transcription with common terms (FR002)
+    terms_prompt: Optional[str] = None
 
 class TranscriptionResult(BaseModel):
     text: str

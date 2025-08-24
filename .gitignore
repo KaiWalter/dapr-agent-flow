@@ -27,6 +27,7 @@ package-lock.json
 .dapr/
 .dapr_state/
 .work/
+.common_terms.txt
 
 # Python
 __pycache__/

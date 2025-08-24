@@ -17,6 +17,9 @@
 - **FR002**: Transcribe downloaded voice recording
 	- Transcribe the recording and store the transcription in JSON format aside the recording file but replacing the extension with `.json`.
 	- After transcription, invoke the intent orchestration process to handle classification and action planning.
+	- Use a list of common terms that are provided in a plain text file by the user to make transcription more accurate.
+	- If common terms file is not specified, do not pass to transcription process.
+	- If common terms file is specified but does not exist, log a warning.
 	- relevant: `TR002`
 
 - **FR003**: Plan and Execute Actions

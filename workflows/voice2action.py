@@ -48,6 +48,7 @@ def voice2action_poll_orchestrator(ctx: DaprWorkflowContext, input: Optional[dic
     # Tier 1 provides these
     offline_mode = bool(cfg.get("offline_mode", False))
     inbox_folder = cfg.get("inbox_folder")
+    terms_file = cfg.get("terms_file")
     wf_log(ctx, "voice2action_poll: polling folder=%s", inbox_folder)
     try:
         if offline_mode:
@@ -82,6 +83,7 @@ def voice2action_poll_orchestrator(ctx: DaprWorkflowContext, input: Optional[dic
                             "inbox_folder": inbox_folder,
                             "archive_folder": cfg.get("archive_folder"),
                             "download_folder": cfg.get("download_folder"),
+                            "terms_file": terms_file,
                         },
                     },
                 )
@@ -106,6 +108,7 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
         inbox_folder = cfg.get("inbox_folder")
         archive_folder = cfg.get("archive_folder")
         download_folder = cfg.get("download_folder")
+        terms_file = cfg.get("terms_file")
         wf_log(ctx, "voice2action_per_file: downloading id=%s name=%s", file.id, file.name)
         if offline_mode:
             from activities.local_inbox import prepare_local_file_activity
@@ -126,7 +129,11 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
         wf_log(ctx, "voice2action_per_file: transcribing id=%s path=%s", file.id, audio_path)
         transcription_result = yield ctx.call_activity(
             activity=transcribe_audio_activity,
-            input={"audio_path": audio_path, "mime_type": mime_type},
+            input={
+                "audio_path": audio_path,
+                "mime_type": mime_type,
+                "terms_file": terms_file,
+            },
         )
         wf_log(ctx, "voice2action_per_file: transcription done id=%s", file.id)
         # Build archive input; inbox folder depends on mode

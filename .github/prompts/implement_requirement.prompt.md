@@ -4,6 +4,8 @@ mode: agent
 Implement functional requirement {requirement} in the codebase.
 {#requirement must be a valid functional requirement number, e.g., FR001. This field is mandatory.}
 
+If the requirement is already implemented suggest what needs to be enhanced or changed.
+
 Make a suggestion of what code to add or change in the codebase to implement the functional requirement and wait for user approval before proceeding.
 
 Always consider technical requirements referenced in the functional requirement.

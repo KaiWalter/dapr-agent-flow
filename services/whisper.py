@@ -21,6 +21,7 @@ def transcribe_audio_file(req: TranscriptionRequest) -> TranscriptionResult:
         model="whisper-1",
         file=req.audio_path,  # path string; client handles file opening/bytes
         # language can be provided optionally, e.g., language="en"
+        prompt=req.terms_prompt if getattr(req, "terms_prompt", None) else None,
     )
 
     response = client.create_transcription(request=transcription_request)
