@@ -10,7 +10,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${MQUSERNAME:-agent}
       RABBITMQ_DEFAULT_PASS: ${MQPASSWORD:-agentpass}
     volumes:
-      - ./.data/mq:/var/lib/rabbitmq
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -119,7 +119,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # workflows publisher (services/workflow/worker.py)
   workflows:
@@ -184,7 +184,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # worker-voice2action (services/workflow/worker_voice2action.py)
   worker-voice2action:
@@ -256,7 +256,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # orchestrator-intent (services/intent_orchestrator/orchestrator)
   orchestrator-intent:
@@ -321,7 +321,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # agent-task-planner (services/intent_orchestrator/agent_tasker.py)
   agent-task-planner:
@@ -389,7 +389,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # agent-office-automation (services/intent_orchestrator/agent_office_automation.py)
   agent-office-automation:
@@ -462,7 +462,7 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
   # monitor (services/ui/web_monitor/server.js)
   web-monitor:
@@ -516,10 +516,11 @@ services:
       ]
     volumes:
       - ./:/app
-    restart: unless-stopped
+    restart: always
 
 volumes:
   dapr-etcd-data: {}
+  rabbitmq_data: {}
   work: {}
 
 networks:
