@@ -4,8 +4,8 @@ services:
     image: rabbitmq:4-management-alpine
     container_name: rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: ${MQUSERNAME:-agent}
       RABBITMQ_DEFAULT_PASS: ${MQPASSWORD:-agentpass}
@@ -22,7 +22,7 @@ services:
 
   # Infra: PostgreSQL state store
   postgres:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     container_name: postgres
     ports:
       - "5432:5432"
@@ -46,7 +46,7 @@ services:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
     ports:
-      - "4317:4317"   # OTLP gRPC
+      - "4317:4317" # OTLP gRPC
       - "16686:16686" # Jaeger UI
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
