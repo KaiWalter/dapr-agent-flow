@@ -171,5 +171,6 @@ Secrets and configuration
 - Keep environment-specific details (components, app-ids/ports) outside application code.
 
 References
+- [General Requirements](../general-requirements.md)
 - [Voice2Action Requirements](../voice2action-requirements.md)
 - Dapr Workflows SDK docs (Python): orchestration patterns, deterministic constraints, activity signatures, and retries.
