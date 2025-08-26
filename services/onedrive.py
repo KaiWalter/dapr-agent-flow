@@ -19,7 +19,7 @@ def move_file_to_archive(file_id: str, file_name: Optional[str] = None, inbox_fo
     dest_id = dest_meta.get("id")
     if not dest_id:
         raise RuntimeError(f"Could not resolve archive folder id for path '{archive_folder}'")
-    # If a file with the same name exists in destination, delete it first (FR006)
+    # If a file with the same name exists in destination, delete it first
     if file_name:
         try:
             existing = service.find_child_by_name(parent_id=dest_id, name=file_name)

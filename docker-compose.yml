@@ -1,11 +1,11 @@
 services:
   # Infra: RabbitMQ message broker
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:4-management-alpine
     container_name: rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: ${MQUSERNAME:-agent}
       RABBITMQ_DEFAULT_PASS: ${MQPASSWORD:-agentpass}
@@ -37,6 +37,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - agent-flows
+
+  # Infra: Jaeger tracing backend
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "16686:16686" # Jaeger UI
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
     restart: unless-stopped
     networks:
       - agent-flows
@@ -108,6 +121,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         " ",
         "--enable-metrics",
@@ -173,6 +188,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         " ",
         "--enable-metrics",
@@ -243,6 +260,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         "placement:50005",
         "--scheduler-host-address",
@@ -308,6 +327,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         "placement:50005",
         "--scheduler-host-address",
@@ -376,6 +397,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         "placement:50005",
         "--scheduler-host-address",
@@ -449,6 +472,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         "placement:50005",
         "--scheduler-host-address",
@@ -505,6 +530,8 @@ services:
         "${DAPR_LOG_LEVEL:-warn}",
         "--resources-path",
         "/app/docker-components",
+        "--config",
+        "/app/docker-components/config.yaml",
         "--placement-host-address",
         " ",
         "--enable-metrics",
@@ -516,6 +543,7 @@ services:
       ]
     volumes:
       - ./:/app
+
     restart: always
 
 volumes:

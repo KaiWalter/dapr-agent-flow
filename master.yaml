@@ -2,6 +2,7 @@ version: 1
 
 common:
   resourcesPath: ./components
+  configFilePath: ./components/config.yaml
   logLevel: info
   appLogDestination: file
   daprdLogDestination: file

@@ -1,4 +1,4 @@
-dapr-agents>=0.8.2
+dapr-agents[observability]>=0.8.2
 dapr-ext-workflow==1.16.0rc1
 dapr-ext-fastapi==1.16.0rc1
 dapr-ext-grpc==1.16.0rc1

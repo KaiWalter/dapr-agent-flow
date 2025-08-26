@@ -37,7 +37,7 @@ def main():
         else os.getenv("ONEDRIVE_VOICE_ARCHIVE")
     )
     download_folder = os.getenv("LOCAL_VOICE_DOWNLOAD_FOLDER", "./.work/voice")
-    # Optional: path to common terms file to bias transcription (FR002)
+    # Optional: path to common terms file to bias transcription
     terms_file = os.getenv("TRANSCRIPTION_TERMS_FILE")
 
     # Ensure local dirs exist in offline mode for smoother testing

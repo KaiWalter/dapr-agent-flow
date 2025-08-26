@@ -10,7 +10,7 @@ logger = logging.getLogger("task_webhook")
 
 def create_task(title: str, due: Optional[str] = None, reminder: Optional[str] = None) -> Dict[str, Any]:
     """
-    Create a task by invoking an external webhook (FR008).
+    Create a task by invoking an external webhook.
 
     Uses environment variable CREATE_TODO_ITEM_WEBHOOK_URL and POSTs exactly:
       { "title": str, "due"?: str, "reminder"?: str }

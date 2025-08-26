@@ -18,6 +18,9 @@ Basic flow as implemented here - see [my post](https://dev.to/kaiwalter/dipping-
 
 ## Repository Structure
 
+[General requirements document](./general-requirements.md) states requirements - mostly technical requirements - that apply to all workflows implemented or to be implements here.
+[Voice2Action requirements document](./voice2action-requirements.md) states functional specific to the Voice2Action workflow.
+
 ### Top Level / Tier 1 Structure
 
 The structure leans into structures provided by [quickstart samples](https://github.com/dapr/dapr-agents/tree/main/quickstarts). Some polishing is still required, but I wanted to get the code out there to get feedback and learnings from the community.
@@ -102,9 +105,9 @@ The following table shows which environment variables are used by which Python a
 | OPENAI_API_KEY                | (none)                                       | OpenAI API key for transcription/classification                                         |
 | OPENAI_CLASSIFICATION_MODEL   | gpt-4.1-mini                                 | Default model for classification                                                        |
 | LOCAL_VOICE_DOWNLOAD_FOLDER   | ./.work/voice                                | Local directory for downloads                                                           |
-| SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails (FR007)                                               |
-| CREATE_TODO_ITEM_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks (FR008)                                           |
-| TRANSCRIPTION_TERMS_FILE      | (none)                                       | Optional path to a text file with one term per line to bias transcription (FR002)       |
+| SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails                                               |
+| CREATE_TODO_ITEM_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks                                           |
+| TRANSCRIPTION_TERMS_FILE      | (none)                                       | Optional path to a text file with one term per line to bias transcription       |
 
 ## Optional Environment Variables
 
@@ -116,12 +119,12 @@ The following table shows which environment variables are used by which Python a
 | DAPR_API_MAX_RETRIES           | (none)                                       | Max retries for Dapr API calls (if supported by SDK/app)                                |
 | DAPR_INTENT_ORCHESTRATOR_TOPIC | IntentOrchestrator                           | Pub/sub topic for intent orchestrator                                                   |
 | TOKEN_STATE_STORE_NAME         | tokenstatestore                              | Dapr state store component name for token cache                                         |
-| OFFLINE_MODE                   | false                                        | Use local inbox/archive instead of OneDrive (FR009)                                     |
+| OFFLINE_MODE                   | false                                        | Use local inbox/archive instead of OneDrive                                     |
 | LOCAL_VOICE_INBOX              | ./local_voice_inbox                          | Local folder for incoming audio files (used if OFFLINE_MODE=true)                       |
 | LOCAL_VOICE_ARCHIVE            | ./local_voice_archive                        | Local folder for archiving processed files (used if OFFLINE_MODE=true)                  |
 | OFFICE_TIMEZONE                | (system timezone)                            | Target timezone for scheduling/time operations (used by Tasker agent only).<br/>Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).<br/>If not set, the system timezone will be used as the default.<br/>The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents. |
 
-### Common Terms for Transcription (FR002)
+### Common Terms for Transcription
 
 You can improve transcription accuracy by providing a list of domain-specific terms.
 

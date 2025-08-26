@@ -29,6 +29,22 @@ if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; the
 	fi
 fi
 
+# Start Jaeger container if not already running
+if ! docker ps --format '{{.Names}}' | grep -q '^jaeger$'; then
+	if docker ps -a --format '{{.Names}}' | grep -q '^jaeger$'; then
+		echo "Starting existing Jaeger container..."
+		docker start jaeger
+	else
+		echo "Running new Jaeger container..."
+		docker run -d --name jaeger \
+		  -p 4317:4317  \
+		  -p 16686:16686 \
+		  jaegertracing/all-in-one:latest
+	fi
+else
+	echo "Jaeger container already running."
+fi
+
 if [ -f .env ]; then
 	set -a
 	. .env
