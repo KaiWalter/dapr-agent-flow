@@ -8,7 +8,7 @@ If the requirement is already implemented suggest what needs to be enhanced or c
 
 Make a suggestion of what code to add or change in the codebase to implement the functional requirement and wait for user approval before proceeding.
 
-Always consider technical requirements referenced in the functional requirement.
+Always consider technical requirements referenced by the functional requirement.
 Make sure to follow the coding standards and conventions of the project. If you need to create new files, place them in the appropriate directories.
 
 If you need to modify existing files, ensure that you do not break existing functionality.

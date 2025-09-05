@@ -11,7 +11,7 @@ import os
 
 class OutlookService:
     """
-    Outlook adapter using Microsoft Graph. Reuses MSAL token cache persisted in the Dapr state store (TR001).
+    Outlook adapter using Microsoft Graph. Reuses MSAL token cache persisted in the Dapr state store.
 
     Provides a method to send email via POST /me/sendMail with delegated permissions.
     """

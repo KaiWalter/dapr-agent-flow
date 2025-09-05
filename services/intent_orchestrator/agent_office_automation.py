@@ -52,7 +52,7 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
 
 @tool(args_model=CreateTaskArgs)
 def create_todo_item(title: str, due_date: Optional[str] = None, reminder: Optional[str] = None, notes: Optional[str] = None) -> str:
-    """Create a to-do item via webhook (FR008)."""
+    """Create a to-do item via webhook."""
     try:
         _ = task_webhook.create_task(title=title, due=due_date, reminder=reminder)
         return "Task created"
