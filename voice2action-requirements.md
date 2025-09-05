@@ -87,3 +87,10 @@ Consider technical requirements in [general requirements document](./general-req
 	- Monitor shall be implemented with Node.js.
 	- relevant: [TR003](./general-requirements.md#TR003)
 
+-- **FR011**: Thought Collection
+	- As a user I want transcriptions containing a thought or an idea to be collected in a structured storage so that I can process those later with other workflows.
+	- Intent to collect such a thought shall be explicitly stated like "this is a thought on {topic}" where in topic shall match a list of topics available in a folder structure. If there is no topic match just proceed sending the transcript as email.
+	- Extracting the intent shall be handled by Intent Orchestrator and interaction with tought storage particular by Office Automation agent.
+	- Depending on mode (see FR009) the target folder is either a specified OneDrive folder or a local folder. The sub folders of this specified folder provide the list of topics to match transcripts to.
+	- When a topic matching sub folder has been determined, store the transcript (see FR002) in that sub folder.
+

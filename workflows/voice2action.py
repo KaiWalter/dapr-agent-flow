@@ -49,7 +49,8 @@ def voice2action_poll_orchestrator(ctx: DaprWorkflowContext, input: Optional[dic
     offline_mode = bool(cfg.get("offline_mode", False))
     inbox_folder = cfg.get("inbox_folder")
     terms_file = cfg.get("terms_file")
-    wf_log(ctx, "voice2action_poll: polling folder=%s", inbox_folder)
+    thoughts_root_folder = cfg.get("thoughts_root_folder")
+    wf_log(ctx, "voice2action_poll: polling folder=%s thoughts_root=%s", inbox_folder, thoughts_root_folder)
     try:
         if offline_mode:
             from activities.local_inbox import list_local_inbox_activity
@@ -84,6 +85,7 @@ def voice2action_poll_orchestrator(ctx: DaprWorkflowContext, input: Optional[dic
                             "archive_folder": cfg.get("archive_folder"),
                             "download_folder": cfg.get("download_folder"),
                             "terms_file": terms_file,
+                            "thoughts_root_folder": thoughts_root_folder,
                         },
                     },
                 )
@@ -109,7 +111,8 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
         archive_folder = cfg.get("archive_folder")
         download_folder = cfg.get("download_folder")
         terms_file = cfg.get("terms_file")
-        wf_log(ctx, "voice2action_per_file: downloading id=%s name=%s", file.id, file.name)
+        thoughts_root_folder = cfg.get("thoughts_root_folder")
+        wf_log(ctx, "voice2action_per_file: downloading id=%s name=%s thoughts_root=%s", file.id, file.name, thoughts_root_folder)
         if offline_mode:
             from activities.local_inbox import prepare_local_file_activity
             download_activity = prepare_local_file_activity
@@ -122,9 +125,7 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
                 "src_folder": inbox_folder,
             },
         )
-        # download_result contains the local path under 'path'
         audio_path = download_result.get('path')
-        # Derive MIME type from file extension (.mp3 -> audio/mpeg, .wav -> audio/x-wav)
         mime_type = 'audio/mpeg' if file.name.lower().endswith('.mp3') else 'audio/x-wav'
         wf_log(ctx, "voice2action_per_file: transcribing id=%s path=%s", file.id, audio_path)
         transcription_result = yield ctx.call_activity(
@@ -136,14 +137,12 @@ def voice2action_per_file_orchestrator(ctx: DaprWorkflowContext, input):
             },
         )
         wf_log(ctx, "voice2action_per_file: transcription done id=%s", file.id)
-        # Build archive input; inbox folder depends on mode
         archive_input = {
             "file_id": file.id,
             "file_name": file.name,
             "inbox_folder": inbox_folder,
             "archive_folder": archive_folder,
         }
-        # Publish intent plan first (fire-and-forget via pub/sub), then archive sequentially
         _ = yield ctx.call_activity(
             activity=publish_intent_plan_activity,
             input={

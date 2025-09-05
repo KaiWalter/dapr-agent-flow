@@ -39,6 +39,10 @@ def main():
     download_folder = os.getenv("LOCAL_VOICE_DOWNLOAD_FOLDER", "./.work/voice")
     # Optional: path to common terms file to bias transcription
     terms_file = os.getenv("TRANSCRIPTION_TERMS_FILE")
+    # Thought collection roots (FR011)
+    thoughts_root_folder = (
+        os.getenv("LOCAL_THOUGHTS_ROOT") if offline_mode else os.getenv("ONEDRIVE_THOUGHTS_ROOT")
+    )
 
     # Ensure local dirs exist in offline mode for smoother testing
     if offline_mode:
@@ -59,6 +63,7 @@ def main():
                     "archive_folder": archive_folder,
                     "download_folder": download_folder,
                     "terms_file": terms_file,
+                    "thoughts_root_folder": thoughts_root_folder,
                 }
                 d.publish_event(
                     pubsub_name="pubsub",

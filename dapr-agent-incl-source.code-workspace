@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../dapr-agents"
+		},
+		{
+			"path": "../dapr-agents-catalyst-samples/"
 		}
 	],
 	"settings": {}

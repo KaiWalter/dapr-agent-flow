@@ -87,6 +87,8 @@ The following table shows which environment variables are used by which Python a
 | OFFICE_TIMEZONE               | agent-task-planner                              | agent-task-planner            |
 | SEND_MAIL_RECIPIENT           | agent-office-automation                         | agent-office-automation       |
 | CREATE_TODO_ITEM_WEBHOOK_URL       | agent-office-automation                         | agent-office-automation       |
+| ONEDRIVE_THOUGHTS_ROOT       | agent-office-automation (store_thought tool)      | agent-office-automation       |
+| LOCAL_THOUGHTS_ROOT          | agent-office-automation (store_thought tool)      | agent-office-automation       |
 
 > **Note:**  
 > - All Dapr-enabled applications use `DAPR_APP_PORT`, `DAPR_LOG_LEVEL`, and `DAPR_API_MAX_RETRIES`.
@@ -108,6 +110,8 @@ The following table shows which environment variables are used by which Python a
 | SEND_MAIL_RECIPIENT           | (none)                                       | Recipient for all outgoing emails                                               |
 | CREATE_TODO_ITEM_WEBHOOK_URL       | (none)                                       | Target webhook URL for creating tasks                                           |
 | TRANSCRIPTION_TERMS_FILE      | (none)                                       | Optional path to a text file with one term per line to bias transcription       |
+| ONEDRIVE_THOUGHTS_ROOT        | (none)                                       | Root OneDrive folder whose immediate subfolders define valid thought topics (FR011) |
+| LOCAL_THOUGHTS_ROOT           | (none)                                       | Local root folder for thought topics in offline mode (FR011)                   |
 
 ## Optional Environment Variables
 
@@ -125,6 +129,35 @@ The following table shows which environment variables are used by which Python a
 | OFFICE_TIMEZONE                | (system timezone)                            | Target timezone for scheduling/time operations (used by Tasker agent only).<br/>Specifies the target timezone for all scheduling and time-related operations (e.g., `Europe/Berlin`, `US/Central`).<br/>If not set, the system timezone will be used as the default.<br/>The Tasker agent exposes tools (`get_office_timezone`, `get_office_timezone_offset`) to provide the effective timezone and offset to all other agents and workflow steps. Do not read this variable directly in other agents. |
 
 ### Common Terms for Transcription
+### Thought Collection (FR011)
+
+Explicitly capture ideas by speaking phrases like:
+
+  "This is a thought on Projects about creating an automation pipeline"
+
+Rules:
+- Only phrases starting exactly with "this is a thought on" (case-insensitive) are considered.
+- Topic must match (case-insensitive) an existing immediate subfolder under the configured thoughts root.
+- Multiple distinct topics in a single transcription are all stored (each becomes its own JSON artifact).
+- If at least one thought is stored, normal task/email intent handling is skipped.
+
+Environment variables:
+- `ONEDRIVE_THOUGHTS_ROOT` (online mode) e.g. `/Thoughts`
+- `LOCAL_THOUGHTS_ROOT` (offline mode) e.g. `./thoughts`
+
+Each topic subfolder might look like:
+
+```
+/Thoughts
+  /Projects
+  /Research
+  /Personal Growth
+```
+
+Artifacts are stored as JSON files named:
+`YYYYMMDDTHHMMSSZ--<topic-slug>.thought.json`
+with keys: `topic`, `text`, `source`, `collected_at`.
+
 
 You can improve transcription accuracy by providing a list of domain-specific terms.
 

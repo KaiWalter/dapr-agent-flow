@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dapr_agents import DurableAgent, tool, OpenAIChatClient
 from dapr_agents.memory import ConversationDaprStateMemory
-from models.agents import SendEmailArgs, CreateTaskArgs
+from models.agents import SendEmailArgs, CreateTaskArgs, StoreThoughtArgs
 from services import task_webhook
 from services.outlook import OutlookService
 from typing import Optional
@@ -10,6 +10,9 @@ import asyncio
 import logging
 import os
 import uuid
+import json
+from datetime import datetime, timezone
+from services.onedrive import OneDriveService
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -61,6 +64,74 @@ def create_todo_item(title: str, due_date: Optional[str] = None, reminder: Optio
         return f"Task creation failed: {e}"
 
 
+def _slugify(topic: str) -> str:
+    import re as _re
+    t = topic.strip().lower()
+    t = _re.sub(r"[^a-z0-9]+", "-", t)
+    t = _re.sub(r"-+", "-", t).strip('-')
+    return t or "topic"
+
+
+@tool(args_model=StoreThoughtArgs)
+def store_thought(transcription_text: str, topic: str) -> str:
+    """Store an explicit thought for a given topic.
+
+    Assumes the caller already validated the phrase pattern and selected a valid topic.
+    """
+    offline_mode = os.getenv("OFFLINE_MODE", "false").lower() == "true"
+    root = os.getenv("LOCAL_THOUGHTS_ROOT") if offline_mode else os.getenv("ONEDRIVE_THOUGHTS_ROOT")
+    if not root:
+        return "No thoughts root configured"
+    if offline_mode:
+        # Validate topic folders
+        if not os.path.isdir(root):
+            return "Thoughts root folder missing"
+        available = {d.lower(): d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))}
+        real = available.get(topic.lower())
+        if not real:
+            return "Topic not found"
+        topic_dir = os.path.join(root, real)
+        os.makedirs(topic_dir, exist_ok=True)
+        slug = _slugify(real)
+        filename = f"{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}--{slug}.thought.json"
+        path = os.path.join(topic_dir, filename)
+        payload = {
+            "topic": real,
+            "text": transcription_text,
+            "source": "voice",
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+        }
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        return f"Stored thought for topic: {real}"
+    else:
+        svc = OneDriveService()
+        available_list = svc.list_subfolders(root)
+        available = {n.lower(): n for n in available_list}
+        real = available.get(topic.lower())
+        if not real:
+            return "Topic not found"
+        slug = _slugify(real)
+        filename = f"{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}--{slug}.thought.json"
+        payload = {
+            "topic": real,
+            "text": transcription_text,
+            "source": "voice",
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+        }
+        import tempfile
+        with tempfile.NamedTemporaryFile('w+', delete=False, encoding='utf-8') as tmp:
+            json.dump(payload, tmp, ensure_ascii=False, indent=2)
+            tmp_path = tmp.name
+        dest = f"{root.rstrip('/')}/{real}/{filename}"
+        svc.upload_small_file(tmp_path, dest)
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        return f"Stored thought for topic: {real}"
+
+
 async def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
@@ -85,7 +156,7 @@ async def main():
                     "- when no time is specified, use the start of the business day (06:00:00) as default",
                     "- add timezone offset to the date time string, e.g., Z or +00:00",
                 ],
-                tools=[send_email, create_todo_item],
+                tools=[send_email, create_todo_item, store_thought],
                 llm=openai_llm,
                 local_state_path="./.dapr_state",
 

@@ -200,3 +200,39 @@ class OneDriveService:
             if it.get("name") == name:
                 return it
         return None
+
+    # ---- Thought collection helpers (FR011) ----
+    def list_subfolders(self, folder_path: str) -> List[str]:
+        """Return the list of immediate subfolder names under folder_path.
+
+        If the folder_path does not exist, returns empty list (caller treats as no topics).
+        """
+        try:
+            meta = self.get_item_by_path(folder_path)
+            folder_id = meta.get("id")
+            if not folder_id:
+                return []
+            children = self.list_children_by_id(folder_id)
+            names: List[str] = []
+            for it in children.get("value", []):
+                if "folder" in it and it.get("name"):
+                    names.append(it.get("name"))
+            return names
+        except Exception as e:
+            self.logger.warning("list_subfolders('%s') failed: %s", folder_path, e)
+            return []
+
+    def upload_small_file(self, local_path: str, dest_path: str) -> Dict[str, Any]:
+        """Upload (overwrite) a small file to OneDrive at dest_path.
+
+        dest_path must be an absolute/relative path like /Thoughts/Topic/file.json.
+        """
+        norm = dest_path if dest_path.startswith("/") else f"/{dest_path}"
+        url = f"{self.base_url}/drive/root:{norm}:/content"
+        with open(local_path, "rb") as f:
+            resp = requests.put(url, headers=self._headers(), data=f)
+        resp.raise_for_status()
+        try:
+            return resp.json()
+        except Exception:
+            return {"ok": True}

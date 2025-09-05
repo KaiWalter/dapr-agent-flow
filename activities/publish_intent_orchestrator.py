@@ -26,13 +26,20 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
-        "task": f"Process voice transcription from file [{input.get('transcription_path')}]. "
-                f"Text inside [...] is a file path — preserve it exactly."
-                f"From the first two sentences, extract the user’s intent to plan steps. "
-                f"Treat the rest of the transcription as a note with no further intent. "
-                f"Do not infer any intent that is not explicitly stated. "
-                f"Possible explicit intent: create a todo. "
-                f"If no intent is found, send an email containing the full transcript.",
+        "task": (
+            "Process voice transcription from file "
+            f"[{input.get('transcription_path')}]. Text inside [...] is a file path — preserve it exactly. "
+            "Identify explicit intent only (do not infer). Intent priority order:\n"
+            "1. THOUGHT_COLLECTION: phrase matches 'this is a thought on {topic}'. {topic} is the immediately following words up to punctuation or newline.\n"
+            "2. TASK_CREATION: explicit directive to create a task / follow up / reminder.\n"
+            "3. FALLBACK_EMAIL: if neither above applies.\n"
+            "If THOUGHT_COLLECTION is detected, plan to call the 'store_thought' tool with the full transcription text. "
+            "Do not attempt other actions once a thought is stored. "
+            "Multiple thought phrases may exist; store all distinct topics. "
+            "Only treat a phrase as thought if the wording is explicit (case-insensitive) and starts exactly with 'this is a thought on'. "
+            "If wording deviates, ignore it. "
+            "If no valid thought phrase exists, continue evaluating for task creation, else fallback email."
+        ),
         "workflow_instance_id": input.get("correlation_id"),
     }
 
