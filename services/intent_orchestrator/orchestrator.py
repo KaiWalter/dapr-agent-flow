@@ -27,7 +27,6 @@ async def main():
         debugpy.wait_for_client()
         
     try:
-        # openai_llm = OpenAIChatClient.from_prompty("orchestrator.prompty")
         openai_llm = OpenAIChatClient(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
         orchestrator = (
             LLMOrchestrator(

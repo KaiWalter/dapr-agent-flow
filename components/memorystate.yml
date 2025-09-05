@@ -1,0 +1,15 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: memorystatestore
+spec:
+  type: state.sqlite
+  version: v1
+  metadata:
+  - name: connectionString
+    value: "./.data/agentstatestore.db"
+  - name: keyPrefix
+    value: none
+scopes:
+- agent-task-planner
+- agent-office-automation
