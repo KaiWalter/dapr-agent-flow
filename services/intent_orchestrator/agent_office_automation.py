@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from dapr_agents import DurableAgent, tool
+from dapr_agents import DurableAgent, tool, OpenAIChatClient
+from dapr_agents.memory import ConversationDaprStateMemory
+from models.agents import SendEmailArgs, CreateTaskArgs
+from services import task_webhook
+from services.outlook import OutlookService
 from typing import Optional
 import asyncio
 import logging
 import os
-from services.outlook import OutlookService
-from services import task_webhook
-from models.agents import SendEmailArgs, CreateTaskArgs
+import uuid
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -67,6 +69,7 @@ async def main():
         debugpy.wait_for_client()
 
     try:
+        openai_llm = OpenAIChatClient(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
         agent = (
             DurableAgent(
                 name="OfficeAutomation",
@@ -83,16 +86,28 @@ async def main():
                     "- add timezone offset to the date time string, e.g., Z or +00:00",
                 ],
                 tools=[send_email, create_todo_item],
+                llm=openai_llm,
                 local_state_path="./.dapr_state",
+
+                # PubSub input
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+                broadcast_topic_name=os.getenv(
+                    "DAPR_BROADCAST_TOPIC", "beacon_channel"),
+
+                # Execution state
                 state_store_name=os.getenv(
                     "DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
+
+                # Memory state
+                memory=ConversationDaprStateMemory(
+                    store_name="memorystatestore", session_id=f"office-automation-{uuid.uuid4().hex[:8]}"
+                ),
+
+                # Discovery                
                 agents_registry_store_name=os.getenv(
                     "DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",
-                broadcast_topic_name=os.getenv(
-                    "DAPR_BROADCAST_TOPIC", "beacon_channel")
             )
             .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))
         )

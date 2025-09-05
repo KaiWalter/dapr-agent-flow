@@ -1,0 +1,19 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: memorystatestore
+spec:
+  type: state.postgresql
+  version: v2
+  metadata:
+  - name: connectionString
+    secretKeyRef:
+      name: DBCONNECTION
+      key: DBCONNECTION
+  - name: keyPrefix
+    value: none
+auth:
+  secretStore: envvar-secret-store
+scopes:
+- agent-task-planner
+- agent-office-automation
