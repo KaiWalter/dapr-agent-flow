@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # folders to clean
 folders=(.dapr/logs .dapr_state .work/voice .work .data/local_voice_inbox .data/local_voice_archive)
@@ -15,10 +15,6 @@ for folder in "${folders[@]}"; do
 		find "$folder" -maxdepth 1 -type f -exec rm {} +
 	fi
 done
-
-# # remove file markers from REDIS
-# redis-cli KEYS *voice_inbox_downloaded* | xargs -r redis-cli DEL
-# redis-cli KEYS *voice_inbox_pending* | xargs -r redis-cli DEL
 
 # activate virtualenv only if not already in .venv
 if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; then
@@ -45,15 +41,34 @@ else
 	echo "Jaeger container already running."
 fi
 
+# Start RabbitMQ container if not already running
+if ! docker ps --format '{{.Names}}' | grep -q '^rabbitmq$'; then
+	if docker ps -a --format '{{.Names}}' | grep -q '^rabbitmq$'; then
+		echo "Starting existing RabbitMQ container..."
+		docker start rabbitmq
+	else
+		echo "Running new RabbitMQ container..."
+		docker run -d --name rabbitmq \
+			-p 5672:5672 \
+			-p 15672:15672 \
+			rabbitmq:4-management
+	fi
+else
+	echo "RabbitMQ container already running."
+fi
+
+# Load environment variables from .env file if it exists
 if [ -f .env ]; then
 	set -a
 	. .env
 	set +a
 fi
 
+# Start all Dapr applications
 dapr run -f master.yaml &
 pid=$!
 
+# Ensure all child processes are killed on script exit
 trap "pgrep -P $pid | xargs kill && kill $pid" INT HUP
 
 wait $pid

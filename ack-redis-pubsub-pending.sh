@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Usage: ./ack-redis-pubsub-pending.sh <stream> <group> <consumer>
 # Examples:
 # ./ack-redis-pubsub-pending.sh voice2action-schedule workflows workflows
