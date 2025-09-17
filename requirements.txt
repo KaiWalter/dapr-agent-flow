@@ -1,5 +1,5 @@
 cloudevents>=1.9.0
-dapr-agents[observability]>=0.8.3
+dapr-agents[observability]>=0.8.4
 dapr-ext-fastapi==1.16.0rc1
 dapr-ext-grpc==1.16.0rc1
 dapr-ext-grpc==1.16.0rc1
