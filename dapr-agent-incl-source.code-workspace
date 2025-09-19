@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "../dapr-agents"
+		},
+		{
+			"path": "../dapr/"
+		},
+		{
+			"path": "../python-sdk/"
 		}
 	],
 	"settings": {}

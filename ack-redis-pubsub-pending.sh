@@ -1,6 +1,9 @@
-#!/bin/bash
-# Usage: ./ack_pending.sh <stream> <group> <consumer>
-# Example: ./ack_pending.sh voice2action-schedule workflows my-consumer
+#!/usr/bin/env bash
+# Usage: ./ack-redis-pubsub-pending.sh <stream> <group> <consumer>
+# Examples:
+# ./ack-redis-pubsub-pending.sh voice2action-schedule workflows workflows
+# ./ack-redis-pubsub-pending.sh IntentOrchestrator orchestrator-intent orchestrator-intent
+
 
 STREAM=${1:-voice2action-schedule}
 GROUP=${2:-workflows}

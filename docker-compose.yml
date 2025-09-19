@@ -56,7 +56,7 @@ services:
 
   # Infra: Dapr placement service (required for workflows/actors)
   placement:
-    image: daprio/dapr:1.16.0-rc.5
+    image: daprio/dapr:1.16.0-rc.7
     command: ["./placement", "--port", "50005"]
     networks:
       - agent-flows
@@ -64,7 +64,7 @@ services:
 
   # Infra: Dapr scheduler service (required for workflows)
   scheduler:
-    image: daprio/scheduler:1.16.0-rc.5
+    image: daprio/scheduler:1.16.0-rc.7
     command: ["./scheduler", "--port", "50007", "--etcd-data-dir", "/data"]
     networks:
       - agent-flows
@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
 
   authenticator-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:authenticator"
     depends_on:
       postgres:
@@ -164,7 +164,7 @@ services:
     restart: unless-stopped
 
   workflows-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:workflows"
     depends_on:
       postgres:
@@ -231,7 +231,7 @@ services:
     restart: unless-stopped
 
   worker-voice2action-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:worker-voice2action"
     depends_on:
       postgres:
@@ -301,7 +301,7 @@ services:
     restart: unless-stopped
 
   orchestrator-intent-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:orchestrator-intent"
     depends_on:
       postgres:
@@ -371,7 +371,7 @@ services:
     restart: unless-stopped
 
   agent-task-planner-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:agent-task-planner"
     depends_on:
       postgres:
@@ -446,7 +446,7 @@ services:
     restart: unless-stopped
 
   agent-office-automation-dapr:
-    image: daprio/daprd:1.16.0-rc.5
+    image: daprio/daprd:1.16.0-rc.7
     network_mode: "service:agent-office-automation"
     depends_on:
       postgres:

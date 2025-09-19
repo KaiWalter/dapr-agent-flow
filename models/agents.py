@@ -69,8 +69,23 @@ class RetrieveTranscriptionArgs(BaseModel):
     transcription_text: Optional[str] = None
 
 
+class StoreThoughtArgs(BaseModel):
+    """Schema for storing a single explicit thought for a given topic (FR011).
+
+    Topic extraction is performed by the agent using the list of valid topics (subfolders)
+    supplied by another tool. This tool only validates the topic exists and writes the
+    JSON artifact for that one thought.
+    """
+
+    transcription_text: str = Field(
+        description="Full transcription text containing the explicit thought phrase."
+    )
+    topic: str = Field(description="Exact topic folder name (case-insensitive match).")
+
+
 __all__ = [
     "SendEmailArgs",
     "CreateTaskArgs",
     "RetrieveTranscriptionArgs",
+    "StoreThoughtArgs",
 ]

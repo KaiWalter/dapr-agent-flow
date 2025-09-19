@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import uuid
+from services.onedrive import OneDriveService
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -104,6 +105,35 @@ def get_office_timezone_offset(*, unused: str = "") -> str:
     minutes, _ = divmod(remainder, 60)
     return f"{sign}{hours:02}:{minutes:02}"
 
+
+@tool()
+def list_thought_topics(*, unused: str = "") -> str:
+    """Return the list of valid thought topics (folder names) for FR011.
+
+    - In offline mode reads subdirectories of LOCAL_THOUGHTS_ROOT.
+    - In online mode lists subfolders of ONEDRIVE_THOUGHTS_ROOT via OneDrive.
+    Returns a JSON array string (e.g., ["Projects", "Research"]). If root not configured returns [].
+    """
+    offline_mode = os.getenv("OFFLINE_MODE", "false").lower() == "true"
+    root = os.getenv("LOCAL_THOUGHTS_ROOT") if offline_mode else os.getenv("ONEDRIVE_THOUGHTS_ROOT")
+    if not root:
+        return "[]"
+    topics = []
+    try:
+        if offline_mode:
+            if not os.path.isdir(root):
+                return "[]"
+            for name in os.listdir(root):
+                if os.path.isdir(os.path.join(root, name)):
+                    topics.append(name)
+        else:
+            svc = OneDriveService()
+            topics = svc.list_subfolders(root)
+    except Exception as e:
+        return f"[\n  \"error: {e}\"\n]"
+    import json as _json
+    return _json.dumps(topics)
+
 async def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
@@ -119,15 +149,28 @@ async def main():
                 role="Planner",
                 goal= "Provide all kind of input information e.g. voice recording transcript and provide additional reference information which are helpful to the process.",
                 instructions=[
-                    "You are an agent in a multi-step process."
-                    "You provide utility to the process and none of your actions are to be considered to conclude the process.",
-                    "You add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.",
-                    "Available tools and arguments:",
-                    "- read_transcription(transcription_path: string)",
-                    "- get_office_timezone()",
-                    "- get_office_timezone_offset()",
+                    (
+                        "You are an agent in a multi-step process. "
+                        "You provide utility to the process and none of your actions are to be considered to conclude the process. "
+                        "You add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders."
+                    ),
+                    (
+                        "Available tools and arguments:\n"
+                        "- retrieve_transcription(transcription_path?: string, transcription_text?: string)\n"
+                        "- get_office_timezone()\n"
+                        "- get_office_timezone_offset()\n"
+                        "- list_thought_topics()"
+                    ),
+                    (
+                        "Thought processing rules (FR011):\n"
+                        "1. Use list_thought_topics() to obtain valid topics.\n"
+                        "2. Scan the transcription for explicit phrases: 'this is a thought on {topic}'.\n"
+                        "3. {topic} must case-insensitively match a valid topic folder name.\n"
+                        "4. Provide each distinct valid topic separately to the office automation agent's store_thought tool along with the full transcription text.\n"
+                        "5. Do not hallucinate topics; only use those returned by list_thought_topics()."
+                    ),
                 ],
-                tools=[retrieve_transcription, get_office_timezone, get_office_timezone_offset],
+                tools=[retrieve_transcription, get_office_timezone, get_office_timezone_offset, list_thought_topics],
                 llm=openai_llm,
                 local_state_path="./.dapr_state",
 
