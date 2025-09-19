@@ -11,9 +11,9 @@
     nixpkgs,
     flake-utils,
   }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
+    flake-utils.lib.eachDefaultSystem (
+      system: let
+        pkgs = import nixpkgs {inherit system;};
         python = pkgs.python313;
         isDarwin = pkgs.stdenv.isDarwin;
         libPath = pkgs.lib.makeLibraryPath [
@@ -23,7 +23,7 @@
           pkgs.c-ares
         ];
         linuxPackages = with pkgs; [
-           python
+          python
           dapr-cli
           zsh
           sqlite
@@ -36,7 +36,10 @@
         ];
       in {
         devShells.default = pkgs.mkShell {
-          packages = if isDarwin then darwinPackages else linuxPackages;
+          packages =
+            if isDarwin
+            then darwinPackages
+            else linuxPackages;
 
           shellHook = ''
             export LD_LIBRARY_PATH=${libPath}:$LD_LIBRARY_PATH
@@ -53,7 +56,7 @@
             # Ensure pip exists and is up to date inside the venv
             python -m ensurepip -U >/dev/null 2>&1 || true
             python -m pip install --upgrade pip wheel >/dev/null 2>&1 || true
-          
+
             # Ensure /bin/bash exists and points to the devshell bash
             if [ ! -e /bin/bash ] || [ "$(readlink -f /bin/bash)" != "$(command -v bash)" ]; then
               sudo ln -sf "$(command -v bash)" /bin/bash 2>/dev/null || true
