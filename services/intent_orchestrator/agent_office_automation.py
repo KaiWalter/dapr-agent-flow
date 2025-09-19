@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dapr_agents import DurableAgent, tool, OpenAIChatClient
+from dapr_agents import DurableAgent, tool
+from services.llm_factory import create_chat_llm
 from dapr_agents.memory import ConversationDaprStateMemory
 from models.agents import SendEmailArgs, CreateTaskArgs
 from services import task_webhook
@@ -69,7 +70,7 @@ async def main():
         debugpy.wait_for_client()
 
     try:
-        openai_llm = OpenAIChatClient(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+        llm = create_chat_llm()
         agent = (
             DurableAgent(
                 name="OfficeAutomation",
@@ -86,7 +87,7 @@ async def main():
                     "- add timezone offset to the date time string, e.g., Z or +00:00",
                 ],
                 tools=[send_email, create_todo_item],
-                llm=openai_llm,
+                llm=llm,
                 local_state_path="./.dapr_state",
 
                 # PubSub input
@@ -109,7 +110,7 @@ async def main():
                     "DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",
             )
-            .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))
+            .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))  # type: ignore[attr-defined]
         )
         # Patch stop() to be a coroutine accepting arbitrary args to avoid signal handler TypeError
         async def stop_ignore_args(*args, **kwargs):
