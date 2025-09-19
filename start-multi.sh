@@ -3,17 +3,17 @@
 # folders to clean
 folders=(.dapr/logs .dapr_state .work/voice .work .data/local_voice_inbox .data/local_voice_archive)
 for folder in "${folders[@]}"; do
-	files=("$folder"/*)
-	found_file=false
-	for f in "${files[@]}"; do
-		if [ -f "$f" ]; then
-			found_file=true
-			break
-		fi
-	done
-	if $found_file; then
-		find "$folder" -maxdepth 1 -type f -exec rm {} +
-	fi
+  files=("$folder"/*)
+  found_file=false
+  for f in "${files[@]}"; do
+    if [ -f "$f" ]; then
+      found_file=true
+      break
+    fi
+  done
+  if $found_file; then
+    find "$folder" -maxdepth 1 -type f -exec rm {} +
+  fi
 done
 
 # Proactively kill any lingering daprd/app processes from a previous crash to avoid
@@ -21,119 +21,61 @@ done
 echo "Ensuring no lingering Dapr/app processes are running..."
 apps_to_kill=(agent-task-planner orchestrator-intent agent-office-automation monitor web-monitor workflows worker-voice2action authenticator)
 for pattern in "${apps_to_kill[@]}"; do
-	# Kill python module processes
-	pkill -f "python -m .*${pattern}" 2>/dev/null || true
-	# Kill sidecars with matching app id in args
-	pkill -f "daprd.*--app-id ${pattern}" 2>/dev/null || true
+  # Kill python module processes
+  pkill -f "python -m .*${pattern}" 2>/dev/null || true
+  # Kill sidecars with matching app id in args
+  pkill -f "daprd.*--app-id ${pattern}" 2>/dev/null || true
 done
 
 # Also kill any orphan overall daprd processes older than 1 hour (safety net)
 if command -v ps >/dev/null 2>&1; then
-	now_epoch=$(date +%s)
-	while read -r pid etime cmd; do
-		# Skip header
-		if [ "$pid" = "PID" ]; then continue; fi
-		# If elapsed time is in the form [[dd-]hh:]mm:ss, convert hours when >= 01:00:00
-		# Simple heuristic: if contains '-' or starts with ..:..:.. and hour >=1, kill
-		if echo "$etime" | grep -Eq '^[0-9]+-' || echo "$etime" | grep -Eq '^[0-9]{2}:[0-9]{2}:[0-9]{2}' ; then
-			# Could be long-running; if it's a daprd keep only if we just cleaned; kill anyway to ensure clean slate
-			if echo "$cmd" | grep -q 'daprd'; then
-				kill "$pid" 2>/dev/null || true
-			fi
-		fi
-	done < <(ps -eo pid,etime,command | grep daprd | grep -v grep)
+  now_epoch=$(date +%s)
+  while read -r pid etime cmd; do
+    # Skip header
+    if [ "$pid" = "PID" ]; then continue; fi
+    # If elapsed time is in the form [[dd-]hh:]mm:ss, convert hours when >= 01:00:00
+    # Simple heuristic: if contains '-' or starts with ..:..:.. and hour >=1, kill
+    if echo "$etime" | grep -Eq '^[0-9]+-' || echo "$etime" | grep -Eq '^[0-9]{2}:[0-9]{2}:[0-9]{2}'; then
+      # Could be long-running; if it's a daprd keep only if we just cleaned; kill anyway to ensure clean slate
+      if echo "$cmd" | grep -q 'daprd'; then
+        kill "$pid" 2>/dev/null || true
+      fi
+    fi
+  done < <(ps -eo pid,etime,command | grep daprd | grep -v grep)
 fi
 
 echo "Process cleanup complete."
 
 # activate virtualenv only if not already in .venv
 if [ -z "${VIRTUAL_ENV:-}" ] || [ "$(basename "$VIRTUAL_ENV")" != ".venv" ]; then
-	if [ -f .venv/bin/activate ]; then
-		source .venv/bin/activate
-	else
-		echo "Warning: .venv not found at .venv/bin/activate; continuing without activating a venv" >&2
-	fi
+  if [ -f .venv/bin/activate ]; then
+    source .venv/bin/activate
+  else
+    echo "Warning: .venv not found at .venv/bin/activate; continuing without activating a venv" >&2
+  fi
 fi
 
 # Start Jaeger container if not already running
 if ! docker ps --format '{{.Names}}' | grep -q '^jaeger$'; then
-	if docker ps -a --format '{{.Names}}' | grep -q '^jaeger$'; then
-		echo "Starting existing Jaeger container..."
-		docker start jaeger
-	else
-		echo "Running new Jaeger container..."
-		docker run -d --name jaeger \
-		  -p 4317:4317  \
-		  -p 16686:16686 \
-		  jaegertracing/all-in-one:latest
-	fi
+  if docker ps -a --format '{{.Names}}' | grep -q '^jaeger$'; then
+    echo "Starting existing Jaeger container..."
+    docker start jaeger
+  else
+    echo "Running new Jaeger container..."
+    docker run -d --name jaeger \
+      -p 4317:4317 \
+      -p 16686:16686 \
+      jaegertracing/all-in-one:latest
+  fi
 else
-	echo "Jaeger container already running."
+  echo "Jaeger container already running."
 fi
-
-# Start RabbitMQ container if not already running
-if ! docker ps --format '{{.Names}}' | grep -q '^rabbitmq$'; then
-	if docker ps -a --format '{{.Names}}' | grep -q '^rabbitmq$'; then
-		echo "Starting existing RabbitMQ container..."
-		docker start rabbitmq
-	else
-		echo "Running new RabbitMQ container..."
-		docker run -d --name rabbitmq \
-			-p 5672:5672 \
-			-p 15672:15672 \
-			rabbitmq:4-management
-	fi
-else
-	echo "RabbitMQ container already running."
-fi
-
-# Robust RabbitMQ readiness check (management API or diagnostics)
-wait_for_rabbitmq() {
-	local timeout_secs=${RABBITMQ_READY_TIMEOUT:-120}
-	local start_ts=$(date +%s)
-	local mgmt_url="http://localhost:15672/api/health/checks/alarms" # lightweight endpoint
-
-	echo "Waiting for RabbitMQ readiness (timeout ${timeout_secs}s)..."
-	echo " - Checking management API (${mgmt_url}) or docker exec diagnostics"
-
-	while true; do
-		# 1) Try management API (guest:guest is default in vanilla image for localhost access)
-		if command -v curl >/dev/null 2>&1; then
-			if curl -s -u guest:guest -o /dev/null -w '%{http_code}' "$mgmt_url" 2>/dev/null | grep -q '^200$'; then
-				echo "RabbitMQ ready (management API responding 200)."
-				return 0
-			fi
-		fi
-
-		# 2) Fallback to rabbitmq-diagnostics ping inside container
-		if docker exec rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
-			echo "RabbitMQ ready (rabbitmq-diagnostics ping successful)."
-			return 0
-		fi
-
-		# 3) As a last resort, look for startup complete log line (non-authoritative)
-		if docker logs rabbitmq 2>&1 | grep -q "Server startup complete"; then
-			echo "RabbitMQ seems ready (log indicates startup complete)."
-			return 0
-		fi
-
-		# Timeout handling
-		local now_ts=$(date +%s)
-		if [ $((now_ts - start_ts)) -ge $timeout_secs ]; then
-			echo "WARNING: RabbitMQ not confirmed ready within ${timeout_secs}s; proceeding anyway."
-			return 1
-		fi
-		sleep 2
-	done
-}
-
-wait_for_rabbitmq
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-	set -a
-	. .env
-	set +a
+  set -a
+  . .env
+  set +a
 fi
 
 # Start all Dapr applications

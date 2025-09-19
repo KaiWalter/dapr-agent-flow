@@ -3,8 +3,10 @@ kind: Component
 metadata:
   name: pubsub
 spec:
-  type: pubsub.rabbitmq
+  type: pubsub.redis
   version: v1
   metadata:
-  - name: connectionString
-    value: "amqp://localhost:5672"
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""

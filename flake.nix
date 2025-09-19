@@ -27,12 +27,18 @@
           dapr-cli
           zsh
           sqlite
+          redis
+          curl
+          python313Packages.virtualenv
         ];
         darwinPackages = with pkgs; [
           python
           dapr-cli
           zsh
           sqlite
+          redis
+          curl
+          python313Packages.virtualenv
         ];
       in {
         devShells.default = pkgs.mkShell {
@@ -46,23 +52,28 @@
 
             VENV_DIR=".venv"
             if [ ! -d "$VENV_DIR" ]; then
-              echo "Creating Python venv at $VENV_DIR"
-              ${python}/bin/python -m venv "$VENV_DIR"
+              echo "Creating Python virtualenv (with pip) at $VENV_DIR"
+              ${pkgs.python313Packages.virtualenv}/bin/virtualenv --python=${python}/bin/python "$VENV_DIR"
             fi
 
             # shellcheck disable=SC1091
             source "$VENV_DIR/bin/activate"
 
-            # Ensure pip exists and is up to date inside the venv
-            python -m ensurepip -U >/dev/null 2>&1 || true
-            python -m pip install --upgrade pip wheel >/dev/null 2>&1 || true
-
-            # Ensure /bin/bash exists and points to the devshell bash
-            if [ ! -e /bin/bash ] || [ "$(readlink -f /bin/bash)" != "$(command -v bash)" ]; then
-              sudo ln -sf "$(command -v bash)" /bin/bash 2>/dev/null || true
+            if [ ! -x "$VENV_DIR/bin/pip" ]; then
+              echo "pip missing inside venv – attempting fallback bootstrap via get-pip.py"
+              TMP_GET_PIP=$(mktemp)
+              if curl -fsSL https://bootstrap.pypa.io/get-pip.py -o "$TMP_GET_PIP"; then
+                "$VENV_DIR/bin/python" "$TMP_GET_PIP" --upgrade || echo "Fallback pip bootstrap failed" >&2
+              else
+                echo "Could not download get-pip.py (offline?)" >&2
+              fi
+              rm -f "$TMP_GET_PIP"
             fi
 
-            # hand off to an interactive login zsh
+            if [ -x "$VENV_DIR/bin/pip" ]; then
+              pip install --upgrade --quiet pip wheel setuptools >/dev/null 2>&1 || true
+            fi
+
             exec ${pkgs.zsh}/bin/zsh -i -l
           '';
         };
