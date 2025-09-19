@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from time import sleep
+import threading
 import debugpy
 
 from cloudevents.sdk.event import v1
@@ -37,7 +38,8 @@ root.setLevel(getattr(logging, level, logging.INFO))
 logger = logging.getLogger("worker_voice2action")
 
 
-def start_runtime() -> None:
+def build_runtime() -> WorkflowRuntime:
+    """Build and register workflows/activities (no start)."""
     runtime = WorkflowRuntime()
     runtime.register_workflow(voice2action_poll_orchestrator)
     runtime.register_workflow(voice2action_per_file_orchestrator)
@@ -59,7 +61,25 @@ def start_runtime() -> None:
     runtime.register_activity(mark_file_pending)
     runtime.register_activity(transcribe_audio_activity)
     runtime.register_activity(publish_intent_plan_activity)
-    runtime.start()
+    return runtime
+
+
+def start_runtime_async(runtime: WorkflowRuntime) -> None:
+    """Start workflow runtime in a background thread so gRPC server can bind early.
+
+    We have at least one poll interval (~60s) before first schedule event, so
+    runtime should be fully started long before workflows are scheduled.
+    """
+    def _run():
+        try:
+            logger.info("Starting WorkflowRuntime asynchronously...")
+            runtime.start()
+            logger.info("WorkflowRuntime started.")
+        except Exception:
+            logger.exception("WorkflowRuntime failed to start")
+
+    t = threading.Thread(target=_run, name="workflow-runtime", daemon=True)
+    t.start()
 
 
 app = App()
@@ -118,7 +138,10 @@ if __name__ == "__main__":
         print("debugpy: Waiting for debugger attach on port 5678...")
         debugpy.wait_for_client()
 
-    # Start workflow runtime then gRPC app
-    start_runtime()
+    runtime = build_runtime()
+    # Start runtime asynchronously to let gRPC app become reachable quickly for sidecar subscription discovery
+    start_runtime_async(runtime)
+
     port = int(os.environ.get("DAPR_APP_PORT", 5002))
+    logger.info(f"Starting gRPC App on port {port} (worker-voice2action) ...")
     app.run(port)
