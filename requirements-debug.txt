@@ -1,0 +1,16 @@
+cloudevents>=1.9.0
+# Use local editable install of dapr-agents (sibling repo) for step-through debugging.
+# Path is relative to this requirements file. Ensure the sibling folder exists.
+-e ../dapr-agents[observability]
+dapr-ext-fastapi==1.16.0
+dapr-ext-grpc==1.16.0
+dapr-ext-workflow==1.16.0
+dapr==1.16.0
+debugpy>=1.8.0
+flask>=2.3.0
+gtts>=2.5.0
+msal>=1.23.0
+pydantic>=2.6.0
+python-dotenv>=1.0.1
+requests>=2.32.0
+tzlocal>=5.0.0

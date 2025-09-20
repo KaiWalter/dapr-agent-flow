@@ -71,8 +71,8 @@ async def main():
 
     try:
         llm = create_chat_llm()
-        agent = (
-            DurableAgent(
+        # Use DurableAgent so we can expose service endpoints over Dapr pub/sub
+        agent = DurableAgent(
                 name="OfficeAutomation",
                 role="Office Assistant",
                 goal="Handle all jobs that require interaction with personal productivity tools like sending emails or creating to-do items.",
@@ -88,30 +88,20 @@ async def main():
                 ],
                 tools=[send_email, create_todo_item],
                 llm=llm,
-                local_state_path="./.dapr_state",
-
-                # PubSub input
+                save_state_locally=False,
                 message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-                broadcast_topic_name=os.getenv(
-                    "DAPR_BROADCAST_TOPIC", "beacon_channel"),
-
-                # Execution state
-                state_store_name=os.getenv(
-                    "DAPR_STATESTORE_NAME", "workflowstatestore"),
+                state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
                 state_key="workflow_state",
-
-                # Memory state
-                memory=ConversationDaprStateMemory(
-                    store_name="memorystatestore", session_id=f"office-automation-{uuid.uuid4().hex[:8]}"
-                ),
-
-                # Discovery                
-                agents_registry_store_name=os.getenv(
-                    "DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
+                agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
                 agents_registry_key="agents_registry",
-            )
-            .as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))  # type: ignore[attr-defined]
-        )
+                broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
+                memory=ConversationDaprStateMemory(
+                    store_name="memorystatestore",
+                    session_id=f"office-automation-{uuid.uuid4().hex[:8]}"
+                ),
+            ).as_service(port=int(os.getenv("DAPR_APP_PORT", "5102")))
+
+        app_port = int(os.getenv("DAPR_APP_PORT", "5102"))
         # Patch stop() to be a coroutine accepting arbitrary args to avoid signal handler TypeError
         async def stop_ignore_args(*args, **kwargs):
             return None

@@ -10,8 +10,6 @@ spec:
     value: "localhost:6379"
   - name: redisPassword
     value: ""
-  - name: keyPrefix
-    value: none
 scopes:
 - agent-task-planner
 - agent-office-automation

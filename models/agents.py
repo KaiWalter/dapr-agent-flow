@@ -61,12 +61,13 @@ class CreateTaskArgs(BaseModel):
 class RetrieveTranscriptionArgs(BaseModel):
     """Schema for retrieving transcription content.
 
-    Provide either a 'transcription_path' to read JSON from disk or a raw
-    'transcription_text' directly. If both are provided, the file path wins.
+    Provide 'transcription_path' to read JSON from disk.
     """
 
-    transcription_path: Optional[str] = None
-    transcription_text: Optional[str] = None
+    transcription_path: str = Field(
+        description=
+        "Path to the voice transcription JSON file on disk (e.g., /.work/transcriptions/meeting1.json)"
+    )
 
 
 __all__ = [
