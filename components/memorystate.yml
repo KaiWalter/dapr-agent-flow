@@ -11,5 +11,5 @@ spec:
   - name: redisPassword
     value: ""
 scopes:
-- agent-task-planner
+- agent-facilitator
 - agent-office-automation

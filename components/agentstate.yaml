@@ -14,5 +14,5 @@ spec:
     value: none
 scopes:
 - orchestrator-intent
-- agent-task-planner
+- agent-facilitator
 - agent-office-automation

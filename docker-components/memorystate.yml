@@ -15,5 +15,5 @@ spec:
 auth:
   secretStore: envvar-secret-store
 scopes:
-- agent-task-planner
+- agent-facilitator
 - agent-office-automation

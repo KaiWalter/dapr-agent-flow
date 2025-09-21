@@ -1,52 +1,39 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.venv/
-
-# Node
-node_modules/
-services/ui/web_monitor/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-
-# Dapr/local runtime
-.dapr/
-.dapr_state/
-
-# Local data/work artifacts
-.work/
-.data/
-
-# Environment
-.env# Data and State files
+##############################################
+# Root / Core Project Specific Ignores
+##############################################
+# Local runtime & working data
 .data/
 .dapr/
-.dapr_state/
 .work/
 .common_terms.txt
 
-# Python
+##############################################
+# Python Essentials
+##############################################
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
+*.pyo
+*.pyd
 *.so
 
-# Distribution / packaging
+# Virtual environments
+.venv/
+.venv
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python build / packaging artifacts
 .Python
 build/
-develop-eggs/
 dist/
-.work/
+develop-eggs/
+downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -61,29 +48,63 @@ MANIFEST
 *.manifest
 *.spec
 
-# Installer logs
+# Logs / installer leftovers
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage
-htmlcov/
+##############################################
+# Node / JavaScript
+##############################################
+node_modules/
+services/ui/web_monitor/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+##############################################
+# Environment & configuration files
+##############################################
+.env
+.env.*
+.python-version
+
+##############################################
+# Testing & Coverage
+##############################################
 .tox/
 .nox/
+.pytest_cache/
+.hypothesis/
+htmlcov/
+coverage.xml
+nosetests.xml
 .coverage
 .coverage.*
-.cache
-nosetests.xml
-coverage.xml
 *.cover
 *.py,cover
-.hypothesis/
-.pytest_cache/
 cover/
 
-# Translations
-*.mo
-*.pot
+##############################################
+# Type Checking / Linters / Caches
+##############################################
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
 
+##############################################
+# Documentation
+##############################################
+_docs/
+docs/_build/
+site/
+
+##############################################
+# Framework / Tool Specific
+##############################################
 # Django
 local_settings.py
 db.sqlite3
@@ -96,84 +117,49 @@ instance/
 # Scrapy
 .scrapy
 
-# Sphinx documentation
-_docs/
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
+# Jupyter / IPython
 .ipynb_checkpoints
 *.ipynb
-
-# IPython
 profile_default/
 ipython_config.py
 
-# pyenv
-.python-version
+# Build tools / PyBuilder
+target/
 
-# pipenv (keep lockfile tracked; uncomment to ignore)
+# Task / Queue tools
+celerybeat-schedule
+celerybeat.pid
+
+# Misc language/tool specific
+*.sage.py
+
+##############################################
+# Dependency / Alt Package Managers (commented to encourage lockfile commits)
+##############################################
+# Pipenv / Poetry / PDM (uncomment if you decide to ignore their lock/config files)
 # Pipfile.lock
-
-# poetry (keep lockfile tracked; uncomment to ignore)
 # poetry.lock
-
-# PDM
 .pdm.toml
 .pdm-python
 .pdm-build/
 __pypackages__/
 
-# PEP 582
-__pypackages__/
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath
-*.sage.py
-
-# Environments
-.env
-.env.*
-.venv
-.venv/
-venv/
-ENV/
-env/
-env.bak/
-venv.bak/
-
-# Spyder
+##############################################
+# Editors / IDE
+##############################################
+.vscode/
+.idea/
+.ropeproject
 .spyderproject
 .spyproject
 
-# Rope
-.ropeproject
-
-# mkdocs
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre
-.pyre/
-
-# pytype
-.pytype/
-
-# Cython debug symbols
+##############################################
+# Cython debug / Low-level
+##############################################
 cython_debug/
 
-# Ruff
-.ruff_cache/
-
-# Editors/IDE
-.vscode/
-.idea/
+##############################################
+# Project Notes
+##############################################
+# .common_terms.txt is user-provided vocabulary for transcription; ignored for privacy.
+# package-lock.json intentionally ignored to avoid lock churn across Node sub-tools.

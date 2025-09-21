@@ -15,5 +15,5 @@ spec:
 scopes:
 - worker-voice2action
 - orchestrator-intent
-- agent-task-planner
+- agent-facilitator
 - agent-office-automation

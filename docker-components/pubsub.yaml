@@ -26,6 +26,6 @@ scopes:
 - workflows
 - worker-voice2action
 - orchestrator-intent
-- agent-task-planner
+- agent-facilitator
 - agent-office-automation
 - web-monitor

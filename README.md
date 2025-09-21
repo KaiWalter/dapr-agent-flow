@@ -35,7 +35,7 @@ The structure leans into structures provided by [quickstart samples](https://git
 - **services/workflow/worker_voice2action** : defines the deterministic steps of the main Voice-2-Action workflow;
   schedules a new instance when receiving pub/sub event from the main worker **services/workflow/worker**
 - **services/intent_orchestrator/app** : bringing a LLM orchestrator for intent processing into standby, waiting for pub/sub events from **services/workflow/worker_voice2action** publish intent orchestrator activity
-- **services/intent_orchestrator/agent_tasker** : participating in above orchestration as a utility agent which delivers information required for the flow like the transcript or time zone information
+- **services/intent_orchestrator/agent_facilitator** : participating in above orchestration as a utility agent which delivers information required for the flow like the transcript or time zone information
 - **services/intent_orchestrator/agent_office_automation** : participating in above orchestration to fulfill all tasks which connect the flow to office automation, like creating tasks or sending emails
 - **services/ui/monitor** : a small console app listening to and printing the LLM orchestration broadcast messages to allow for a better understanding of the flow; this is absolutely required to fine-tune the instructions to the orchestrator and the agents
 
@@ -66,25 +66,24 @@ The following table shows which environment variables are used by which Python a
 
 | Environment Variable           | Application (Entrypoint)                        | Docker Compose Service         |
 |-------------------------------|-------------------------------------------------|-------------------------------|
-| DAPR_APP_PORT                 | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
-| DAPR_LOG_LEVEL                | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
-| DAPR_API_MAX_RETRIES          | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation, web-monitor |
-| DAPR_AGENTS_STATE_DIR         | All Python apps                                 | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| DAPR_APP_PORT                 | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation, web-monitor |
+| DAPR_LOG_LEVEL                | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation, web-monitor |
+| DAPR_API_MAX_RETRIES          | All apps (Python & Node.js)                     | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation, web-monitor |
 | MS_GRAPH_AUTHORITY            | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
 | MS_GRAPH_CLIENT_ID            | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
 | MS_GRAPH_CLIENT_SECRET        | Authenticator, worker-voice2action, agent-office-automation | authenticator, worker-voice2action, agent-office-automation |
 | ONEDRIVE_VOICE_INBOX          | workflows (worker.py)                           | workflows                     |
 | ONEDRIVE_VOICE_ARCHIVE        | workflows (worker.py)                           | workflows                     |
 | ONEDRIVE_VOICE_POLL_INTERVAL  | workflows (worker.py)                           | workflows                     |
-| LOCAL_VOICE_DOWNLOAD_FOLDER   | workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation | workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
+| LOCAL_VOICE_DOWNLOAD_FOLDER   | workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation | workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation |
 | LOCAL_VOICE_INBOX             | workflows (worker.py)                           | workflows                     |
 | LOCAL_VOICE_ARCHIVE           | workflows (worker.py)                           | workflows                     |
 | OFFLINE_MODE                  | workflows (worker.py)                           | workflows                     |
-| DEBUGPY_ENABLE                | workflows, worker-voice2action, agent-task-planner | workflows, worker-voice2action, agent-task-planner |
-| PYDEVD_DISABLE_FILE_VALIDATION| worker-voice2action, agent-task-planner, agent-office-automation | worker-voice2action, agent-task-planner, agent-office-automation |
-| PYTHONUNBUFFERED              | All Python apps                                 | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
-| OPENAI_API_KEY                | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation | worker-voice2action, orchestrator-intent, agent-task-planner, agent-office-automation |
-| OFFICE_TIMEZONE               | agent-task-planner                              | agent-task-planner            |
+| DEBUGPY_ENABLE                | workflows, worker-voice2action, agent-facilitator | workflows, worker-voice2action, agent-facilitator |
+| PYDEVD_DISABLE_FILE_VALIDATION| worker-voice2action, agent-facilitator, agent-office-automation | worker-voice2action, agent-facilitator, agent-office-automation |
+| PYTHONUNBUFFERED              | All Python apps                                 | authenticator, workflows, worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation |
+| OPENAI_API_KEY                | worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation | worker-voice2action, orchestrator-intent, agent-facilitator, agent-office-automation |
+| OFFICE_TIMEZONE               | agent-facilitator                              | agent-facilitator            |
 | SEND_MAIL_RECIPIENT           | agent-office-automation                         | agent-office-automation       |
 | CREATE_TODO_ITEM_WEBHOOK_URL       | agent-office-automation                         | agent-office-automation       |
 

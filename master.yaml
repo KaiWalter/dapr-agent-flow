@@ -9,7 +9,6 @@ common:
   enableAPILogging: false
   env:
     LOCAL_VOICE_DOWNLOAD_FOLDER: "./.work/voice"
-    DAPR_AGENTS_STATE_DIR: "./.dapr_state"
 
 apps:
   - appID: authenticator
@@ -40,18 +39,20 @@ apps:
   - appID: orchestrator-intent
     appDirPath: ./
     appPort: 5100
+    logLevel: debug
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.orchestrator"]
 
-  - appID: agent-task-planner
+  - appID: agent-facilitator
     appDirPath: ./
     appPort: 5101
+    logLevel: debug
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
-    command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
+    command: ["python", "-m", "services.intent_orchestrator.agent_facilitator"]
 
   - appID: agent-office-automation
     appDirPath: ./

@@ -87,7 +87,6 @@ services:
     volumes:
       - ./:/app
     environment:
-      DAPR_AGENTS_STATE_DIR: "./.dapr_state"
       DAPR_APP_PORT: "5000"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
@@ -290,7 +289,6 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5100"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
@@ -344,8 +342,8 @@ services:
       - ./:/app
     restart: always
 
-  # agent-task-planner (services/intent_orchestrator/agent_tasker.py)
-  agent-task-planner:
+  # agent-facilitator (services/intent_orchestrator/agent_facilitator.py)
+  agent-facilitator:
     build:
       context: .
       dockerfile: Dockerfile.python-base
@@ -357,7 +355,6 @@ services:
       - ./:/app
       - work:/.work
     environment:
-      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5101"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}
@@ -367,12 +364,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PYDEVD_DISABLE_FILE_VALIDATION: "1"
       PYTHONUNBUFFERED: "1"
-    command: ["python", "-m", "services.intent_orchestrator.agent_tasker"]
+    command: ["python", "-m", "services.intent_orchestrator.agent_facilitator"]
     restart: unless-stopped
 
-  agent-task-planner-dapr:
+  agent-facilitator-dapr:
     image: daprio/daprd:1.16.0-rc.5
-    network_mode: "service:agent-task-planner"
+    network_mode: "service:agent-facilitator"
     depends_on:
       postgres:
         condition: service_healthy
@@ -390,7 +387,7 @@ services:
       [
         "./daprd",
         "--app-id",
-        "agent-task-planner",
+        "agent-facilitator",
         "--app-port",
         "5101",
         "--log-level",
@@ -428,7 +425,6 @@ services:
       - work:/.work
     environment:
       CREATE_TODO_ITEM_WEBHOOK_URL: ${CREATE_TODO_ITEM_WEBHOOK_URL}
-      DAPR_AGENTS_STATE_DIR: "./app/.dapr_state"
       DAPR_APP_PORT: "5102"
       DAPR_LOG_LEVEL: ${DAPR_LOG_LEVEL:-warn}
       DAPR_API_MAX_RETRIES: ${DAPR_API_MAX_RETRIES}

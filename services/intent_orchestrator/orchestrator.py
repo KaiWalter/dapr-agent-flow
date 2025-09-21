@@ -32,7 +32,7 @@ async def main():
         orchestrator = LLMOrchestrator(
             name="IntentOrchestrator",
             llm=llm,
-            save_state_locally=False,
+            local_state_path="./.dapr/state",
             message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
             state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
             state_key="workflow_state",

@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
+# clear state
+echo "Cleaning up previous state..."
+redis-cli FLUSHALL
+[ -d .dapr/logs ] && rm -rf .dapr/logs
+[ -d .dapr/state ] && rm -rf .dapr/state
+
 # folders to clean
-folders=(.dapr/logs .dapr_state .work/voice .work .data/local_voice_inbox .data/local_voice_archive)
+folders=(.work/voice .work .data/local_voice_inbox .data/local_voice_archive)
 for folder in "${folders[@]}"; do
   files=("$folder"/*)
   found_file=false
@@ -19,7 +25,7 @@ done
 # Proactively kill any lingering daprd/app processes from a previous crash to avoid
 # duplicate RabbitMQ consumer tag errors (NOT_ALLOWED - attempt to reuse consumer tag ...)
 echo "Ensuring no lingering Dapr/app processes are running..."
-apps_to_kill=(agent-task-planner orchestrator-intent agent-office-automation monitor web-monitor workflows worker-voice2action authenticator)
+apps_to_kill=(agent-facilitator orchestrator-intent agent-office-automation monitor web-monitor workflows worker-voice2action authenticator)
 for pattern in "${apps_to_kill[@]}"; do
   # Kill python module processes
   pkill -f "python -m .*${pattern}" 2>/dev/null || true

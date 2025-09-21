@@ -16,8 +16,8 @@ if [ ! -d ".data/db" ]; then
 	chmod 0777 .data/db
 fi
 
-if [ ! -d ".dapr_state" ]; then
-	mkdir -p .dapr_state
+if [ ! -d ".dapr/state" ]; then
+	mkdir -p .dapr/state
 fi
 
 docker-compose up -d
