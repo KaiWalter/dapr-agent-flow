@@ -6,7 +6,15 @@ spec:
   type: pubsub.redis
   version: v1
   metadata:
-  - name: redisHost
-    value: localhost:6379
-  - name: redisPassword
-    value: ""
+    - name: redisHost
+      value: localhost:6379
+    - name: redisPassword
+      value: ""
+scopes:
+  - workflows
+  - worker-voice2action
+  - orchestrator-intent
+  - agent-facilitator
+  - agent-office-automation
+  - web-monitor
+
