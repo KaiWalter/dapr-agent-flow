@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from dapr_agents import DurableAgent, tool
-from services.llm_factory import create_chat_llm
+from dapr_agents.agents.configs import (
+    AgentMemoryConfig,
+    AgentPubSubConfig,
+    AgentRegistryConfig,
+    AgentStateConfig,
+)
 from dapr_agents.memory import ConversationDaprStateMemory
+from dapr_agents.storage.daprstores.stateservice import StateStoreService
+from dapr_agents.workflow.runners.agent import AgentRunner
+from services.llm_factory import create_chat_llm
 from models.agents import RetrieveTranscriptionArgs
-from typing import Optional
+from datetime import datetime, timezone
 import asyncio
 import json
 import logging
@@ -54,7 +62,6 @@ def retrieve_transcription(transcription_path: str) -> str:
 
 
 # Timezone tools: single source of truth for process timezone
-from datetime import datetime, timezone
 
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+
@@ -108,7 +115,91 @@ def get_office_timezone_offset(*, unused: str = "") -> str:
     return f"{sign}{hours:02}:{minutes:02}"
 
 
-async def main():
+logger = logging.getLogger("intent.agent_facilitator")
+DEFAULT_PORT = 5101
+
+
+def _get_env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if not value:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        logger.warning(
+            "Invalid integer for %s (%r); falling back to %s",
+            name,
+            value,
+            default,
+        )
+        return default
+
+
+def _patch_stop(agent: DurableAgent) -> None:
+    original_stop = getattr(agent, "stop", None)
+    if original_stop is None or asyncio.iscoroutinefunction(original_stop):
+        return
+
+    async def _stop_async(*args, **kwargs):
+        return original_stop(*args, **kwargs)
+
+    try:
+        agent.stop = _stop_async  # type: ignore[assignment]
+        agent.__class__.stop = _stop_async  # type: ignore[assignment]
+    except Exception:
+        logger.debug("Could not patch facilitator agent stop; continuing without patch.")
+
+
+def _build_agent(llm) -> DurableAgent:
+    pubsub = AgentPubSubConfig(
+        pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+        broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
+    )
+    state = AgentStateConfig(
+        store=StateStoreService(store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore")),
+        state_key=os.getenv("INTENT_FACILITATOR_STATE_KEY", "workflow_state"),
+    )
+    registry = AgentRegistryConfig(
+        store=StateStoreService(store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")),
+        team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
+    )
+    memory = AgentMemoryConfig(
+        store=ConversationDaprStateMemory(
+            store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
+            session_id=f"task-planner-{uuid.uuid4().hex[:8]}",
+        )
+    )
+
+    return DurableAgent(
+        name="Facilitator",
+        role="Based on user requests provide essential and auxiliary services, tools and information.",
+        goal="Respond to all inquiries as specific as possible. Do not conjecture intent that is not explicitly stated.",
+        instructions=[
+            "Essential services and tools that have highest priority:",
+            "Use tool read_transcription to access, check or retrieve voice transcription. Take the path to transcription file from mission briefing or task instructions.\n",
+            "Auxiliary services and tools to be used when one of the essential services already has been utilized:"
+            "Add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.\n",
+            "Available tools and arguments:",
+            "- read_transcription(transcription_path: string)",
+            "- get_office_timezone()",
+            "- get_office_timezone_offset()",
+            "\n",
+            "You provide utility to the process and none of your actions are to be considered to conclude the process.",
+        ],
+        tools=[
+            retrieve_transcription,
+            get_office_timezone,
+            get_office_timezone_offset,
+        ],
+        llm=llm,
+        pubsub=pubsub,
+        registry=registry,
+        state=state,
+        memory=memory,
+    )
+
+
+def main() -> None:
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
 
@@ -116,59 +207,36 @@ async def main():
         print("debugpy: Waiting for debugger attach on port 5678...")
         debugpy.wait_for_client()
 
+    runner = AgentRunner()
+    agent: DurableAgent | None = None
+    app_port = _get_env_int("DAPR_APP_PORT", DEFAULT_PORT)
+
     try:
         llm = create_chat_llm()
-        agent = DurableAgent(
-                name="Facilitator",
-                role="Based on user requests provide essential and auxiliary services, tools and information.",
-                goal="Respond to all inquiries as specific as possible. Do not conjecture intent that is not explicitly stated.",
-                instructions=[
-                    "Essential services and tools that have highest priority:",
-                    "Use tool read_transcription to access, check or retrieve voice transcription. Take the path to transcription file from mission briefing or task instructions.\n",
-                    "Auxiliary services and tools to be used when one of the essential services already has been utilized:"
-                    "Add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.\n",
-                    "Available tools and arguments:",
-                    "- read_transcription(transcription_path: string)",
-                    "- get_office_timezone()",
-                    "- get_office_timezone_offset()",
-                    "\n",
-                    "You provide utility to the process and none of your actions are to be considered to conclude the process.",
-                ],
-                tools=[
-                    retrieve_transcription,
-                    get_office_timezone,
-                    get_office_timezone_offset,
-                ],
-                llm=llm,
-                local_state_path="./.dapr/state",
-                message_bus_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-                state_store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-                state_key="workflow_state",
-                agents_registry_store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
-                agents_registry_key="agents_registry",
-                broadcast_topic_name=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-                memory=ConversationDaprStateMemory(
-                    store_name="memorystatestore",
-                    session_id=f"task-planner-{uuid.uuid4().hex[:8]}"
-                ),
-        ).as_service(port=int(os.getenv("DAPR_APP_PORT", "5101")))
-
-        app_port = int(os.getenv("DAPR_APP_PORT", "5101"))
-
-        # Patch stop() to be a coroutine accepting arbitrary args to avoid signal handler TypeError
-        async def stop_ignore_args(*args, **kwargs):
-            return None
-
+        agent = _build_agent(llm)
+        _patch_stop(agent)
+        agent.start()
+        logger.info("Facilitator agent started and awaiting messages")
+        runner.serve(agent, port=app_port)
+    except KeyboardInterrupt:
+        logger.info("Facilitator agent interrupted")
+    except Exception as exc:
+        logger.exception("Error starting Facilitator agent: %s", exc)
+    finally:
         try:
-            agent.stop = stop_ignore_args  # type: ignore[assignment]
-            agent.__class__.stop = stop_ignore_args  # type: ignore[assignment]
+            runner.shutdown()
         except Exception:
-            pass
-
-        await agent.start()
-    except Exception as e:
-        logging.exception("Error starting TaskPlanner agent: %s", e)
+            logger.exception("Error shutting down AgentRunner for Facilitator agent")
+        if agent is not None:
+            try:
+                stop_fn = agent.stop
+                if asyncio.iscoroutinefunction(stop_fn):
+                    asyncio.run(stop_fn())
+                else:
+                    stop_fn()
+            except Exception:
+                logger.exception("Error stopping Facilitator agent")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
