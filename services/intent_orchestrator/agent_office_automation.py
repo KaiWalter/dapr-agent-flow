@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
+import uuid
+from typing import Optional
+
 from dapr_agents import DurableAgent, tool
 from dapr_agents.agents.configs import (
     AgentMemoryConfig,
@@ -7,18 +13,16 @@ from dapr_agents.agents.configs import (
     AgentRegistryConfig,
     AgentStateConfig,
 )
+from dapr_agents.agents.prompting import AgentProfileConfig
 from dapr_agents.memory import ConversationDaprStateMemory
 from dapr_agents.storage.daprstores.stateservice import StateStoreService
 from dapr_agents.workflow.runners.agent import AgentRunner
-from services.llm_factory import create_chat_llm
-from models.agents import SendEmailArgs, CreateTaskArgs
+from dapr_agents.workflow.utils.core import wait_for_shutdown
+
+from models.agents import CreateTaskArgs, SendEmailArgs
 from services import task_webhook
+from services.llm_factory import create_chat_llm
 from services.outlook import OutlookService
-from typing import Optional
-import asyncio
-import logging
-import os
-import uuid
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -38,7 +42,7 @@ root.setLevel(getattr(logging, level, logging.INFO))
 def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str:
     """Send an email to the configured recipient using Outlook (MS Graph)."""
     logger_instance = logging.getLogger("OfficeAutomation")
-    
+
     try:
         recipient = os.getenv("SEND_MAIL_RECIPIENT")
         if not recipient:
@@ -55,7 +59,9 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
     """
         try:
             svc = OutlookService()
-            svc.send_email(to=recipient, subject=subject_safe, body_html=html, save_to_sent=True)
+            svc.send_email(
+                to=recipient, subject=subject_safe, body_html=html, save_to_sent=True
+            )
             return "Email sent successfully"
         except RuntimeError as re:
             logger_instance.warning("OutlookService runtime error: %s", re)
@@ -69,17 +75,24 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
 
 
 @tool(args_model=CreateTaskArgs)
-def create_todo_item(title: str, due_date: Optional[str] = None, reminder: Optional[str] = None, notes: Optional[str] = None) -> str:
+def create_todo_item(
+    title: str,
+    due_date: Optional[str] = None,
+    reminder: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> str:
     """Create a to-do item via webhook."""
     logger_instance = logging.getLogger("OfficeAutomation")
-    
+
     try:
         webhook_url = os.getenv("CREATE_TODO_ITEM_WEBHOOK_URL")
         if not webhook_url:
             return "Task creation failed: CREATE_TODO_ITEM_WEBHOOK_URL is not configured"
-        
+
         try:
-            result = task_webhook.create_task(title=title, due=due_date, reminder=reminder)
+            result = task_webhook.create_task(
+                title=title, due=due_date, reminder=reminder
+            )
             return f"Task created successfully: {result}"
         except ValueError as ve:
             logger_instance.warning("Webhook configuration error: %s", ve)
@@ -93,61 +106,34 @@ def create_todo_item(title: str, due_date: Optional[str] = None, reminder: Optio
 
 
 logger = logging.getLogger("intent.agent_office_automation")
-DEFAULT_PORT = 5102
-
-
-def _get_env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if not value:
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        logger.warning(
-            "Invalid integer for %s (%r); falling back to %s",
-            name,
-            value,
-            default,
-        )
-        return default
-
-
-def _patch_stop(agent: DurableAgent) -> None:
-    original_stop = getattr(agent, "stop", None)
-    if original_stop is None or asyncio.iscoroutinefunction(original_stop):
-        return
-
-    async def _stop_async(*args, **kwargs):
-        return original_stop(*args, **kwargs)
-
-    try:
-        agent.stop = _stop_async  # type: ignore[assignment]
-        agent.__class__.stop = _stop_async  # type: ignore[assignment]
-    except Exception:
-        logger.debug("Could not patch office automation agent stop; continuing without patch.")
 
 
 def _build_agent(llm) -> DurableAgent:
     pubsub = AgentPubSubConfig(
         pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+        agent_topic="office-automation.requests",
         broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
     )
     state = AgentStateConfig(
-        store=StateStoreService(store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore")),
-        state_key=os.getenv("INTENT_OFFICE_STATE_KEY", "workflow_state"),
+        store=StateStoreService(
+            store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+            key_prefix="office-automation:",
+        )
     )
     registry = AgentRegistryConfig(
-        store=StateStoreService(store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")),
+        store=StateStoreService(
+            store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")
+        ),
         team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
     )
     memory = AgentMemoryConfig(
         store=ConversationDaprStateMemory(
             store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
-            session_id=f"office-automation-{uuid.uuid4().hex[:8]}",
+            session_id="office-automation",
         )
     )
 
-    return DurableAgent(
+    profile = AgentProfileConfig(
         name="OfficeAutomation",
         role="Office Assistant",
         goal="Handle all jobs that require interaction with personal productivity tools like sending emails or creating to-do items.",
@@ -161,6 +147,10 @@ def _build_agent(llm) -> DurableAgent:
             "- when no time is specified, use the start of the business day (06:00:00) as default",
             "- add timezone offset to the date time string, e.g., Z or +00:00",
         ],
+    )
+
+    return DurableAgent(
+        profile=profile,
         tools=[send_email, create_todo_item],
         llm=llm,
         pubsub=pubsub,
@@ -170,7 +160,7 @@ def _build_agent(llm) -> DurableAgent:
     )
 
 
-def main() -> None:
+async def main() -> None:
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
 
@@ -179,35 +169,19 @@ def main() -> None:
         debugpy.wait_for_client()
 
     runner = AgentRunner()
-    agent: DurableAgent | None = None
-    app_port = _get_env_int("DAPR_APP_PORT", DEFAULT_PORT)
+    llm = create_chat_llm()
+    agent = _build_agent(llm)
 
     try:
-        llm = create_chat_llm()
-        agent = _build_agent(llm)
-        _patch_stop(agent)
-        agent.start()
+        runner.register_routes(agent)
         logger.info("OfficeAutomation agent started and awaiting messages")
-        runner.serve(agent, port=app_port)
-    except KeyboardInterrupt:
-        logger.info("OfficeAutomation agent interrupted")
-    except Exception as exc:
-        logger.exception("Error starting OfficeAutomation agent: %s", exc)
+        await wait_for_shutdown()
     finally:
-        try:
-            runner.shutdown()
-        except Exception:
-            logger.exception("Error shutting down AgentRunner for OfficeAutomation agent")
-        if agent is not None:
-            try:
-                stop_fn = agent.stop
-                if asyncio.iscoroutinefunction(stop_fn):
-                    asyncio.run(stop_fn())
-                else:
-                    stop_fn()
-            except Exception:
-                logger.exception("Error stopping OfficeAutomation agent")
+        runner.shutdown(agent)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
