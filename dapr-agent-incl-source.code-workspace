@@ -1,11 +1,14 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../dapr-agents"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "../dapr-agents"
+    },
+    {
+      "path": "../tiny-durable-agent"
+    }
+  ],
+  "settings": {}
 }

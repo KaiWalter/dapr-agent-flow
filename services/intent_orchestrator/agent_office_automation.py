@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from dapr_agents import DurableAgent, tool
@@ -44,6 +46,30 @@ def send_email(subject: Optional[str] = None, body: Optional[str] = None) -> str
     logger_instance = logging.getLogger("OfficeAutomation")
 
     try:
+        # Check for OFFLINE_MODE
+        if os.getenv("OFFLINE_MODE", "false").lower() == "true":
+            work_dir = ".work"
+            os.makedirs(work_dir, exist_ok=True)
+            
+            activity_id = str(uuid.uuid4())
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{activity_id}_send_email_{timestamp}.json"
+            filepath = os.path.join(work_dir, filename)
+            
+            activity_data = {
+                "tool": "send_email",
+                "args": {
+                    "subject": subject,
+                    "body": body
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            with open(filepath, "w") as f:
+                json.dump(activity_data, f, indent=2)
+                
+            return f"Activity recorded in offline mode: {filename}"
+
         recipient = os.getenv("SEND_MAIL_RECIPIENT")
         if not recipient:
             return "Email failed: SEND_MAIL_RECIPIENT is not configured"
@@ -85,6 +111,32 @@ def create_todo_item(
     logger_instance = logging.getLogger("OfficeAutomation")
 
     try:
+        # Check for OFFLINE_MODE
+        if os.getenv("OFFLINE_MODE", "false").lower() == "true":
+            work_dir = ".work"
+            os.makedirs(work_dir, exist_ok=True)
+            
+            activity_id = str(uuid.uuid4())
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{activity_id}_create_todo_item_{timestamp}.json"
+            filepath = os.path.join(work_dir, filename)
+            
+            activity_data = {
+                "tool": "create_todo_item",
+                "args": {
+                    "title": title,
+                    "due_date": due_date,
+                    "reminder": reminder,
+                    "notes": notes
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            with open(filepath, "w") as f:
+                json.dump(activity_data, f, indent=2)
+                
+            return f"Activity recorded in offline mode: {filename}"
+
         webhook_url = os.getenv("CREATE_TODO_ITEM_WEBHOOK_URL")
         if not webhook_url:
             return "Task creation failed: CREATE_TODO_ITEM_WEBHOOK_URL is not configured"
@@ -151,8 +203,8 @@ def _build_agent(llm) -> DurableAgent:
 
     return DurableAgent(
         profile=profile,
-        tools=[send_email, create_todo_item],
         llm=llm,
+        tools=[send_email, create_todo_item],
         pubsub=pubsub,
         registry=registry,
         state=state,
@@ -160,7 +212,7 @@ def _build_agent(llm) -> DurableAgent:
     )
 
 
-async def main() -> None:
+def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
 
@@ -173,15 +225,10 @@ async def main() -> None:
     agent = _build_agent(llm)
 
     try:
-        runner.register_routes(agent)
-        logger.info("OfficeAutomation agent started and awaiting messages")
-        await wait_for_shutdown()
+        runner.serve(agent, host="0.0.0.0", port=int(os.getenv("DAPR_APP_PORT", 5102)))
     finally:
         runner.shutdown(agent)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    main()

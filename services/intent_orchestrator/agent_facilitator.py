@@ -167,12 +167,12 @@ def _build_agent(llm) -> DurableAgent:
 
     return DurableAgent(
         profile=profile,
+        llm=llm,
         tools=[
             retrieve_transcription,
             get_office_timezone,
             get_office_timezone_offset,
-        ],
-        llm=llm,
+        ],        
         pubsub=pubsub,
         registry=registry,
         state=state,
@@ -180,7 +180,7 @@ def _build_agent(llm) -> DurableAgent:
     )
 
 
-async def main() -> None:
+def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
 
@@ -193,15 +193,10 @@ async def main() -> None:
     agent = _build_agent(llm)
 
     try:
-        runner.register_routes(agent)
-        logger.info("Facilitator agent started and awaiting messages")
-        await wait_for_shutdown()
+        runner.serve(agent, host="0.0.0.0", port=int(os.getenv("DAPR_APP_PORT", 5101)))
     finally:
         runner.shutdown(agent)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    main()
