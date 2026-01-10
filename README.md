@@ -176,6 +176,10 @@ Start all services using the Dapr multi-app runner:
 
 ```bash
 dapr init
+pip install -r requirements.txt
+pushd services/ui/web_monitor
+npm i
+popd
 ./start-multi.sh
 ```
 
