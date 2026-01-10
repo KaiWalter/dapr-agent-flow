@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from typing import Optional
 
+import dapr.ext.workflow as wf
 from dapr_agents import LLMOrchestrator
 from dapr_agents.agents.configs import (
     AgentExecutionConfig,
@@ -60,16 +60,14 @@ def _log_final_summary(summary: str) -> None:
 def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
     pubsub = AgentPubSubConfig(
         pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-        agent_topic=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "IntentOrchestrator"),
+        agent_topic=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "intent.orchestrator.requests"),
         broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
     )
-    state_store = StateStoreService(
-        store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-        key_prefix=os.getenv("INTENT_ORCH_STATE_PREFIX", "intent.orchestrator:"),
-    )
     state = AgentStateConfig(
-        store=state_store,
-        state_key=os.getenv("INTENT_ORCH_STATE_KEY", "workflow_state"),
+        store=StateStoreService(
+        store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+        key_prefix="intent.orchestrator:",
+    ),
     )
     registry = AgentRegistryConfig(
         store=StateStoreService(
@@ -81,7 +79,7 @@ def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
         max_iterations=_get_env_int("INTENT_ORCH_MAX_ITERATIONS", 6)
     )
 
-    orchestrator_name = os.getenv("ORCHESTRATOR_NAME", "IntentOrchestrator")
+    orchestrator_name = os.getenv("ORCHESTRATOR_NAME", "intent.orchestrator.requests")
 
     return LLMOrchestrator(
         name=orchestrator_name,
@@ -91,26 +89,12 @@ def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
         registry=registry,
         execution=execution,
         agent_metadata={
-            "type": "IntentOrchestrator",
-            "description": "Voice2Action intent workflow orchestrator",
+            "type": "LLMOrchestrator",
+            "description": "LLM-driven Orchestrator",
         },
         final_summary_callback=_log_final_summary,
+        runtime=wf.WorkflowRuntime(),
     )
-
-
-def _patch_stop(orchestrator: LLMOrchestrator) -> None:
-    original_stop = getattr(orchestrator, "stop", None)
-    if original_stop is None or asyncio.iscoroutinefunction(original_stop):
-        return
-
-    async def _stop_async(*args, **kwargs):
-        return original_stop(*args, **kwargs)
-
-    try:
-        orchestrator.stop = _stop_async  # type: ignore[assignment]
-        orchestrator.__class__.stop = _stop_async  # type: ignore[assignment]
-    except Exception:
-        logger.debug("Could not patch orchestrator stop method; continuing without patch.")
 
 
 def main() -> None:
@@ -122,36 +106,19 @@ def main() -> None:
         debugpy.wait_for_client()
 
     app_port = _get_env_int("DAPR_APP_PORT", 5100)
+    llm = create_chat_llm()
+    orchestrator = _build_orchestrator(llm)
     runner = AgentRunner()
-    orchestrator: Optional[LLMOrchestrator] = None
 
     try:
-        llm = create_chat_llm()
-        orchestrator = _build_orchestrator(llm)
-        _patch_stop(orchestrator)
-        orchestrator.start()
         logger.info("IntentOrchestrator workflow runtime started")
-
         runner.serve(orchestrator, port=app_port)
-    except KeyboardInterrupt:
-        logger.info("IntentOrchestrator received interrupt signal")
-    except Exception as exc:
-        logger.exception("IntentOrchestrator failed to start: %s", exc)
     finally:
-        try:
-            runner.shutdown()
-        except Exception:
-            logger.exception("Error shutting down AgentRunner")
-        if orchestrator is not None:
-            try:
-                stop_fn = orchestrator.stop
-                if asyncio.iscoroutinefunction(stop_fn):
-                    asyncio.run(stop_fn())
-                else:
-                    stop_fn()
-            except Exception:
-                logger.exception("Error stopping IntentOrchestrator")
+        runner.shutdown(orchestrator)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

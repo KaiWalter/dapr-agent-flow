@@ -39,7 +39,6 @@ apps:
   - appID: orchestrator-intent
     appDirPath: ./
     appPort: 5100
-    logLevel: debug
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
@@ -48,10 +47,10 @@ apps:
   - appID: agent-facilitator
     appDirPath: ./
     appPort: 5101
-    logLevel: debug
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
+      DAPR_LOG_LEVEL: "debug"
     command: ["python", "-m", "services.intent_orchestrator.agent_facilitator"]
 
   - appID: agent-office-automation
@@ -62,17 +61,17 @@ apps:
       PYDEVD_DISABLE_FILE_VALIDATION: 1
     command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
 
-  - appID: monitor
-    appDirPath: ./
-    appPort: 5199
-    appProtocol: grpc
-    appLogDestination: console
-    logLevel: info
-    placementHostAddress: ""
-    env:
-      DEBUGPY_ENABLE: 0
-      PYDEVD_DISABLE_FILE_VALIDATION: 1
-    command: ["python", "-m", "services.ui.monitor"]
+  # - appID: monitor
+  #   appDirPath: ./
+  #   appPort: 5199
+  #   appProtocol: grpc
+  #   appLogDestination: console
+  #   logLevel: info
+  #   placementHostAddress: ""
+  #   env:
+  #     DEBUGPY_ENABLE: 0
+  #     PYDEVD_DISABLE_FILE_VALIDATION: 1
+  #   command: ["python", "-m", "services.ui.monitor"]
 
   - appID: web-monitor
     appDirPath: ./

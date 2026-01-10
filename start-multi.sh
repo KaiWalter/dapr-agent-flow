@@ -6,6 +6,14 @@ redis-cli FLUSHALL
 [ -d .dapr/logs ] && rm -rf .dapr/logs
 [ -d .dapr/state ] && rm -rf .dapr/state
 
+# Ensure base working directories exist for subsequent steps
+for dir in .data .work; do
+  if [ ! -d "$dir" ]; then
+    echo "Creating missing directory: $dir"
+    mkdir -p "$dir"
+  fi
+done
+
 # folders to clean
 folders=(.work/voice .work .data/local_voice_inbox .data/local_voice_archive)
 for folder in "${folders[@]}"; do

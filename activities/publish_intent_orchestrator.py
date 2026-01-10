@@ -22,7 +22,7 @@ def publish_intent_plan_activity(ctx, input: Dict[str, Any]) -> Dict[str, Any]:
     """
     pubsub_name = os.getenv("DAPR_PUBSUB_NAME", "pubsub")
     # Topic the LLM Orchestrator service listens on; default matches orchestrator name
-    topic = os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "IntentOrchestrator")
+    topic = os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "intent.orchestrator.requests")
 
     # LLM Orchestrator expects a TriggerAction message format
     event_data = {
