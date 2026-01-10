@@ -65,8 +65,8 @@ def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
     )
     state = AgentStateConfig(
         store=StateStoreService(
-        store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-        key_prefix="intent.orchestrator:",
+            store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+            key_prefix="intent.orchestrator:",
     ),
     )
     registry = AgentRegistryConfig(
@@ -92,6 +92,7 @@ def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
             "type": "LLMOrchestrator",
             "description": "LLM-driven Orchestrator",
         },
+        timeout_seconds=int(os.getenv("TIMEOUT_SECONDS", "45")),
         final_summary_callback=_log_final_summary,
         runtime=wf.WorkflowRuntime(),
     )

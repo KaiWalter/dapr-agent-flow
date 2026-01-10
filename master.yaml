@@ -59,6 +59,7 @@ apps:
     env:
       DEBUGPY_ENABLE: 0
       PYDEVD_DISABLE_FILE_VALIDATION: 1
+      DAPR_LOG_LEVEL: "debug"
     command: ["python", "-m", "services.intent_orchestrator.agent_office_automation"]
 
   # - appID: monitor
