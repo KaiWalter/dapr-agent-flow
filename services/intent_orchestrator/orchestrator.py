@@ -12,11 +12,10 @@ from dapr_agents.agents.configs import (
     AgentRegistryConfig,
     AgentStateConfig,
 )
-from dapr_agents.llm.chat import ChatClientBase
+from dapr_agents.llm import DaprChatClient
 from dapr_agents.storage.daprstores.stateservice import StateStoreService
 from dapr_agents.workflow.runners.agent import AgentRunner
 
-from services.llm_factory import create_chat_llm
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -57,47 +56,6 @@ def _log_final_summary(summary: str) -> None:
         logger.info("IntentOrchestrator completed without a summary.")
 
 
-def _build_orchestrator(llm: ChatClientBase) -> LLMOrchestrator:
-    pubsub = AgentPubSubConfig(
-        pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-        agent_topic=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "intent.orchestrator.requests"),
-        broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-    )
-    state = AgentStateConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-            key_prefix="intent.orchestrator:",
-    ),
-    )
-    registry = AgentRegistryConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
-        ),
-        team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
-    )
-    execution = AgentExecutionConfig(
-        max_iterations=_get_env_int("INTENT_ORCH_MAX_ITERATIONS", 6)
-    )
-
-    orchestrator_name = os.getenv("ORCHESTRATOR_NAME", "intent.orchestrator.requests")
-
-    return LLMOrchestrator(
-        name=orchestrator_name,
-        llm=llm,
-        pubsub=pubsub,
-        state=state,
-        registry=registry,
-        execution=execution,
-        agent_metadata={
-            "type": "LLMOrchestrator",
-            "description": "LLM-driven Orchestrator",
-        },
-        timeout_seconds=int(os.getenv("TIMEOUT_SECONDS", "45")),
-        final_summary_callback=_log_final_summary,
-        runtime=wf.WorkflowRuntime(),
-    )
-
-
 def main() -> None:
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
@@ -107,9 +65,39 @@ def main() -> None:
         debugpy.wait_for_client()
 
     app_port = _get_env_int("DAPR_APP_PORT", 5100)
-    llm = create_chat_llm()
-    orchestrator = _build_orchestrator(llm)
     runner = AgentRunner()
+
+    orchestrator = LLMOrchestrator(
+        name=os.getenv("ORCHESTRATOR_NAME", "intent.orchestrator.requests"),
+        llm=DaprChatClient(component_name="llm-provider"),
+        pubsub=AgentPubSubConfig(
+            pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+            agent_topic=os.getenv("DAPR_INTENT_ORCHESTRATOR_TOPIC", "intent.orchestrator.requests"),
+            broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
+        ),
+        state=AgentStateConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+                key_prefix="intent.orchestrator:",
+            ),
+        ),
+        registry=AgentRegistryConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore"),
+            ),
+            team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
+        ),
+        execution=AgentExecutionConfig(
+            max_iterations=_get_env_int("INTENT_ORCH_MAX_ITERATIONS", 6)
+        ),
+        agent_metadata={
+            "type": "LLMOrchestrator",
+            "description": "LLM-driven Orchestrator",
+        },
+        timeout_seconds=int(os.getenv("TIMEOUT_SECONDS", "45")),
+        final_summary_callback=_log_final_summary,
+        runtime=wf.WorkflowRuntime(),
+    )
 
     try:
         logger.info("IntentOrchestrator workflow runtime started")

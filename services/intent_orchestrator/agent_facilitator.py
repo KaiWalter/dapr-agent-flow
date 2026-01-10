@@ -22,7 +22,7 @@ from dapr_agents.workflow.runners.agent import AgentRunner
 from dapr_agents.workflow.utils.core import wait_for_shutdown
 
 from models.agents import RetrieveTranscriptionArgs
-from services.llm_factory import create_chat_llm
+from dapr_agents.llm import DaprChatClient
 
 # Timezone tools: single source of truth for process timezone
 
@@ -108,6 +108,7 @@ def get_office_timezone_offset(*, unused: str = "") -> str:
 
 logger = logging.getLogger("intent.agent_facilitator")
 
+
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
 root = logging.getLogger()
@@ -122,64 +123,6 @@ if not root.handlers:
 root.setLevel(getattr(logging, level, logging.INFO))
 
 
-def _build_agent(llm) -> DurableAgent:
-    pubsub = AgentPubSubConfig(
-        pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-        agent_topic="facilitator.requests",
-        broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-    )
-    state = AgentStateConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-            key_prefix="facilitator:",
-        )
-    )
-    registry = AgentRegistryConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")
-        ),
-        team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
-    )
-    memory = AgentMemoryConfig(
-        store=ConversationDaprStateMemory(
-            store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
-            session_id="facilitator",
-        )
-    )
-
-    profile = AgentProfileConfig(
-        name="Facilitator",
-        role="Based on user requests provide essential and auxiliary services, tools and information.",
-        goal="Respond to all inquiries as specific as possible. Do not conjecture intent that is not explicitly stated.",
-        instructions=[
-            "Essential services and tools that have highest priority:",
-            "Use tool read_transcription to access, check or retrieve voice transcription. Take the path to transcription file from mission briefing or task instructions.\n",
-            "Auxiliary services and tools to be used when one of the essential services already has been utilized:"
-            "Add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.\n",
-            "Available tools and arguments:",
-            "- read_transcription(transcription_path: string)",
-            "- get_office_timezone()",
-            "- get_office_timezone_offset()",
-            "\n",
-            "You provide utility to the process and none of your actions are to be considered to conclude the process.",
-        ],
-    )
-
-    return DurableAgent(
-        profile=profile,
-        llm=llm,
-        tools=[
-            retrieve_transcription,
-            get_office_timezone,
-            get_office_timezone_offset,
-        ],        
-        pubsub=pubsub,
-        registry=registry,
-        state=state,
-        memory=memory,
-    )
-
-
 def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
@@ -189,8 +132,55 @@ def main():
         debugpy.wait_for_client()
 
     runner = AgentRunner()
-    llm = create_chat_llm()
-    agent = _build_agent(llm)
+
+    agent = DurableAgent(
+        profile=AgentProfileConfig(
+            name="Facilitator",
+            role="Based on user requests provide essential and auxiliary services, tools and information.",
+            goal="Respond to all inquiries as specific as possible. Do not conjecture intent that is not explicitly stated.",
+            instructions=[
+                "Essential services and tools that have highest priority:",
+                "Use tool read_transcription to access, check or retrieve voice transcription. Take the path to transcription file from mission briefing or task instructions.\n",
+                "Auxiliary services and tools to be used when one of the essential services already has been utilized:"
+                "Add timezone and timezone offset information to the process when dates are handled e.g. due dates, reminders.\n",
+                "Available tools and arguments:",
+                "- read_transcription(transcription_path: string)",
+                "- get_office_timezone()",
+                "- get_office_timezone_offset()",
+                "\n",
+                "You provide utility to the process and none of your actions are to be considered to conclude the process.",
+            ],
+        ),
+        llm=DaprChatClient(component_name="llm-provider"),
+        tools=[
+            retrieve_transcription,
+            get_office_timezone,
+            get_office_timezone_offset,
+        ],        
+        pubsub=AgentPubSubConfig(
+            pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+            agent_topic="facilitator.requests",
+            broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
+        ),
+        registry=AgentRegistryConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")
+            ),
+            team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
+        ),
+        state=AgentStateConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+                key_prefix="facilitator:",
+            )
+        ),
+        memory=AgentMemoryConfig(
+            store=ConversationDaprStateMemory(
+                store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
+                session_id="facilitator",
+            )
+        ),
+    )
 
     try:
         runner.serve(agent, host="0.0.0.0", port=int(os.getenv("DAPR_APP_PORT", 5101)))

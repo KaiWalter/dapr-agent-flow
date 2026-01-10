@@ -23,8 +23,9 @@ from dapr_agents.workflow.utils.core import wait_for_shutdown
 
 from models.agents import CreateTaskArgs, SendEmailArgs
 from services import task_webhook
-from services.llm_factory import create_chat_llm
 from services.outlook import OutlookService
+from dapr_agents.llm import DaprChatClient
+
 
 # Root logger setup
 level = os.getenv("DAPR_LOG_LEVEL", "info").upper()
@@ -38,6 +39,7 @@ if not root.handlers:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 root.setLevel(getattr(logging, level, logging.INFO))
+
 
 
 @tool(args_model=SendEmailArgs)
@@ -160,58 +162,6 @@ def create_todo_item(
 logger = logging.getLogger("intent.agent_office_automation")
 
 
-def _build_agent(llm) -> DurableAgent:
-    pubsub = AgentPubSubConfig(
-        pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
-        agent_topic="office-automation.requests",
-        broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
-    )
-    state = AgentStateConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
-            key_prefix="office-automation:",
-        )
-    )
-    registry = AgentRegistryConfig(
-        store=StateStoreService(
-            store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")
-        ),
-        team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
-    )
-    memory = AgentMemoryConfig(
-        store=ConversationDaprStateMemory(
-            store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
-            session_id="office-automation",
-        )
-    )
-
-    profile = AgentProfileConfig(
-        name="OfficeAutomation",
-        role="Office Assistant",
-        goal="Handle all jobs that require interaction with personal productivity tools like sending emails or creating to-do items.",
-        instructions=[
-            "From the users intent or actionable items you provide those tools which help to conclude the process.",
-            "Synonomous to create a to-do item in the user's intent can be: follow up, create a task.",
-            "Available tools and arguments:",
-            "- create_todo_item(title: string, due_date?: ISO8601 date time string, reminder?: ISO8601 date time string, notes?: string)",
-            "- send_email(subject?: string, body?: string)",
-            "All date time information needs to be converted into ISO8601 format. Consider the following:",
-            "- when no time is specified, use the start of the business day (06:00:00) as default",
-            "- add timezone offset to the date time string, e.g., Z or +00:00",
-        ],
-    )
-
-    return DurableAgent(
-        profile=profile,
-        llm=llm,
-        tools=[send_email, create_todo_item],
-        pubsub=pubsub,
-        registry=registry,
-        state=state,
-        memory=memory,
-    )
-
-
 def main():
     if os.getenv("DEBUGPY_ENABLE", "0") == "1":
         import debugpy
@@ -221,8 +171,49 @@ def main():
         debugpy.wait_for_client()
 
     runner = AgentRunner()
-    llm = create_chat_llm()
-    agent = _build_agent(llm)
+
+    agent = DurableAgent(
+        profile=AgentProfileConfig(
+            name="OfficeAutomation",
+            role="Office Assistant",
+            goal="Handle all jobs that require interaction with personal productivity tools like sending emails or creating to-do items.",
+            instructions=[
+                "From the users intent or actionable items you provide those tools which help to conclude the process.",
+                "Synonomous to create a to-do item in the user's intent can be: follow up, create a task.",
+                "Available tools and arguments:",
+                "- create_todo_item(title: string, due_date?: ISO8601 date time string, reminder?: ISO8601 date time string, notes?: string)",
+                "- send_email(subject?: string, body?: string)",
+                "All date time information needs to be converted into ISO8601 format. Consider the following:",
+                "- when no time is specified, use the start of the business day (06:00:00) as default",
+                "- add timezone offset to the date time string, e.g., Z or +00:00",
+            ],
+        ),
+        llm=DaprChatClient(component_name="llm-provider"),
+        tools=[send_email, create_todo_item],
+        pubsub=AgentPubSubConfig(
+            pubsub_name=os.getenv("DAPR_PUBSUB_NAME", "pubsub"),
+            agent_topic="office-automation.requests",
+            broadcast_topic=os.getenv("DAPR_BROADCAST_TOPIC", "beacon_channel"),
+        ),
+        registry=AgentRegistryConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_AGENTS_REGISTRY_STORE", "agentstatestore")
+            ),
+            team_name=os.getenv("INTENT_ORCH_TEAM_NAME", "voice2action"),
+        ),
+        state=AgentStateConfig(
+            store=StateStoreService(
+                store_name=os.getenv("DAPR_STATESTORE_NAME", "workflowstatestore"),
+                key_prefix="office-automation:",
+            )
+        ),
+        memory=AgentMemoryConfig(
+            store=ConversationDaprStateMemory(
+                store_name=os.getenv("DAPR_MEMORY_STORE_NAME", "memorystatestore"),
+                session_id="office-automation",
+            )
+        ),
+    )
 
     try:
         runner.serve(agent, host="0.0.0.0", port=int(os.getenv("DAPR_APP_PORT", 5102)))
