@@ -26,9 +26,9 @@ wait_for_rabbitmq() {
   echo " - Checking management API (${mgmt_url}) or docker exec diagnostics"
 
   while true; do
-    # 1) Try management API (guest:guest is default in vanilla image for localhost access)
-    if command -v curl >/dev/null 2>&1; then
-      if curl -s -u guest:guest -o /dev/null -w '%{http_code}' "$mgmt_url" 2>/dev/null | grep -q '^200$'; then
+    # 1) Try management API only when explicit local-development credentials are set.
+    if command -v curl >/dev/null 2>&1 && [[ -n "${RABBITMQ_USER:-}" && -n "${RABBITMQ_PASSWORD:-}" ]]; then
+      if curl -s -u "${RABBITMQ_USER}:${RABBITMQ_PASSWORD}" -o /dev/null -w '%{http_code}' "$mgmt_url" 2>/dev/null | grep -q '^200$'; then
         echo "RabbitMQ ready (management API responding 200)."
         return 0
       fi
